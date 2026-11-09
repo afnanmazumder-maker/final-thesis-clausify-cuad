@@ -1,0 +1,34 @@
+# Data — CUAD is downloaded from Hugging Face on first run (~40 MB, do not commit)
+data/CUADv1.json
+
+# Trained model weights (>100 MB, exceed GitHub's limit) — published at
+# https://huggingface.co/af123Af/clausify-models
+*.safetensors
+*.bin
+*.pt
+*.pth
+
+# Trainer checkpoints / backups / caches
+notebooks/outputs/*/ckpt/
+retrain/span_v2/runs/*/ckpt/
+retrain/clause_v2/runs/bert_ckpt/
+retrain/clause_v2/runs/bert_best/
+# clause-mode classifier (16 MB), published on Hugging Face as clause_v2/tfidf.pkl
+notebooks/outputs/clause_v2/tfidf.pkl
+retrain/clause_v2/runs/tfidf.pkl
+_prev_run_*/
+retrain/analysis_oct2026/window_scores.npz
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# LaTeX build leftovers (retrain/ and analysis/ logs are results and are kept)
+*.aux
+*.blg
+project_report/*.log
+paper/*.log
+
+# OS
+.DS_Store

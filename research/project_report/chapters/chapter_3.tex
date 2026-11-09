@@ -1,0 +1,205 @@
+\section{Final Specifications and Requirements}
+\subsection{Functional requirements}
+\begin{enumerate}[label=\textbf{FR\arabic*}, itemsep=2pt, leftmargin=1.4cm]
+  \item The system shall accept a contract as pasted text or as an uploaded \texttt{.pdf}, \texttt{.docx} or \texttt{.txt} file.
+  \item For each of the 41 CUAD clause categories, the system shall decide whether the contract has a clause of that type, and shall show the detection score of each type it finds.
+  \item For each category found, the system shall show the clause text from the user's own contract.
+  \item The system shall give every clause found a High, Medium or Low risk level and a one-line reason in plain English.
+  \item The system shall show the clauses grouped by risk level (High first) and sorted by score within each group.
+  \item The system shall let the user analyze either a whole contract or a list of separate clauses, with one card per clause in the second case.
+\end{enumerate}
+
+\subsection{Non-functional requirements}
+\begin{itemize}[itemsep=2pt]
+  \item Privacy: all models shall run on the user's own computer, and no contract text shall be sent to another service or saved to disk.
+  \item Hardware: all models shall train and run on one ordinary laptop without a CUDA GPU.
+  \item Speed: analyzing a typical contract shall take about a minute on a CPU, and no contract shall take more than two minutes (measured: median 74.7\,s, worst case 116.2\,s; Table~\ref{tab:appbench}).
+  \item Fair testing: every reported score shall come from contracts the models never saw during training (split by contract), and no setting shall be chosen by looking at the test set.
+  \item Repeatability: the split, the baseline model and all trained models shall be saved, and a separate notebook shall recreate every reported number from them.
+  \item Openness: the app shall say that it is not legal advice, and every risk level shall come with a written reason (Appendix~\ref{app:taxonomy}).
+\end{itemize}
+
+\subsection{Data and resource requirements}
+Table~\ref{tab:resources} lists the data, hardware and software the project uses. All of it is either free to use or was already owned by the team.
+
+\begin{table}[!htbp]
+\centering
+\caption{Resource requirements}
+\label{tab:resources}
+\small
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{>{\raggedright\arraybackslash}p{3.2cm} >{\raggedright\arraybackslash}p{10.2cm}}
+\toprule
+\textbf{Resource} & \textbf{Specification}\\
+\midrule
+Dataset & CUAD v1 (The Atticus Project), 510 annotated contracts: \texttt{master\_clauses.csv} and \texttt{CUAD\_v1.json}, obtained from the Hugging Face hub\\
+Hardware & Apple M4 laptop, 16\,GB unified memory, MPS (Metal) GPU backend; no CUDA GPU\\
+Language and runtime & Python 3.13.5\\
+Deep learning & PyTorch 2.8.0, Hugging Face \texttt{transformers} 5.12.1, \texttt{datasets} 5.0.0\\
+Classical ML and data & scikit-learn 1.6.1, NumPy 2.1.3, pandas 2.2.3, \texttt{rouge\_score}\\
+Pre-trained models & \texttt{distilbert-base-uncased} (presence and span), \texttt{google/flan-t5-small} (summarizer)\\
+Application & Streamlit ($\geq$1.40) single-page web application\\
+Development tools & Jupyter notebooks, Git and GitHub, \LaTeX\\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+\subsection{Design constraints}
+Four limits shaped the final design. One laptop cannot train very large models such as the DeBERTa-xlarge model used in the original CUAD work, so we chose smaller (distilled) models. The 510 contracts cannot be extended, so we started from pre-trained models and split the data by contract. The app must score every window of a contract for all 41 categories quickly, which is why it checks every clause type in the first 30 windows of a contract and in only 5 more windows after that, picked by the TF--IDF model. And the models must run locally for privacy, so online language-model services were ruled out.
+
+\section{Societal Impact}
+Having a lawyer review a contract takes hours and costs money that many people and small businesses cannot afford, so many people sign contracts they do not fully understand. A tool that points a non-lawyer to the clauses most likely to hurt them (unlimited liability, IP assignment, non-competes, automatic renewal) can make this easier and help people ask the right questions before signing. The users we have in mind are freelancers, start-ups and small businesses, the groups least able to pay for professional review.
+
+The system has no direct effect on physical health or safety. Its indirect effect is on money and stress: signing a contract without understanding it can lead to disputes, losses and worry, which better-informed signing could reduce.
+
+The system is not legal advice, and it says so. Its biggest risk to society is false reassurance, since a missed clause gives no warning and no warning can be read as ``nothing to worry about''. Our measurements show this risk is real. Even with the retrained span model only 59.6\% of real clauses get through the whole system (Section~\ref{sec:spanv2}), so the tool must be presented as a help for reading a contract and never as a replacement for a lawyer.
+
+CUAD contains US business contracts written in English. Risk levels that make sense under US law may not apply in other countries, and contracts are written differently in different places. The work was inspired by the situation in Bangladesh, but we tested no Bangladeshi contract, so we cannot yet claim these benefits there.
+
+\section{Environmental Impact}
+The project was designed to need little computing power. All models are small (DistilBERT with 67M parameters and FLAN-T5-small). Training the first setup's three models took about 1.5 hours on a laptop, and the re-run presence model the app now uses took another 3.2 hours, and the app runs on a CPU with at most about 2.1\,GB of memory (Table~\ref{tab:appbench}).
+
+Including the extra test runs (the full-data presence run of 140.7 minutes, two extra seeds, the evaluation runs, the Longformer test, and the two re-runs of Section~\ref{sec:v2}, about ten hours together), the whole project used about twenty hours of laptop computing. If a laptop draws 20--30\,W under load (an estimate, not a measurement), that is well under one kilowatt-hour of electricity, very little compared with the many-GPU training often used for large legal language models.
+
+Two design choices also keep the running cost low. The models run locally, so no data center is used for each contract, and the system avoids large text-generating models, which use far more energy per request. The price is accuracy. Section~\ref{sec:lfbench} shows that larger models were rejected partly because of cost, and Chapter~5 reports what the small models achieve.
+
+\section{Ethical Issues}
+\label{sec:ethics}
+The Ethics Statement at the front of this report explains how the data and models were obtained. This section looks at the ethical issues that come from using the system, and the duties these place on the people who build it.
+
+The system is a research prototype meant to help with contract review. It is not legal advice, and the app says so in a notice shown above every analysis. For a tool like this, the harder ethical questions concern what happens when someone relies on its output, and we list them here.
+
+False reassurance is the main danger. A clause the system does not find gives no warning, and no warning is easily read as ``there is nothing to worry about''. Our measurements show this reading would be wrong: even the app's recall-first setting misses 7.0\% of real clauses at the first step, only 59.6\% get through the whole system (Section~\ref{sec:spanv2}), and the first setup's best-scoring ensemble missed 36.9\% of the High-risk clauses (Section~\ref{sec:riskeval}). The recall-first setting the app now uses still misses 9.7\% when it reads whole contracts, and 11.4\% as the app reads long ones (Sections~\ref{sec:v2} and~\ref{sec:demolimits}). A user who checks a contract with this tool and sees three warnings cannot assume there are only three problems. Missed clauses are silent while false alarms are visible, so we think the share of High-risk clauses found is the measure that matters most ethically, even though the overall score does not reward it.
+
+Non-lawyers may trust the app too much. It is made for people without legal training, who are the least able to notice when it is wrong. Plain-English text shown with a confidence bar looks more certain than the model is. Section~\ref{sec:threshold} shows that the raw score was not a probability (scores above 0.9 meant only about a 73\% chance that the clause was really there), so the app now shows a calibrated chance instead, with an Expected Calibration Error of 0.016 on the test contracts, and marks cards under 50\% as \emph{Possible --- check}. The plain-English reason on each card is a fixed sentence for the whole category from the risk table, and it does not read the user's clause. The summarizer, which was meant to describe each clause, also turned out to output one fixed sentence per category (Section~\ref{sec:summ}). The app labels the summarizer's sentence clearly and warns when it belongs to a different category than the card. Without these warnings, the bar and the reason would invite more trust than the evidence supports.
+
+Laws differ between countries. CUAD follows US business law, and risk levels that are right there may be wrong elsewhere. A non-compete that is binding in one country may be invalid in another, and then a High badge would mislead. The work was inspired by the situation in Bangladesh and we tested no Bangladeshi contract, so this limitation applies to the people the work was meant for.
+
+The risk table measures one side's risk. It assumes the user is the side with less bargaining power (Section~\ref{sec:weaker}). For the side that wrote the contract, the same badges are wrong in the other direction, since a clause marked High for the signer may be exactly what the writer wanted. The system cannot tell which side the user is on.
+
+Our experiments used only public contracts, so privacy did not arise during the research. A real deployment would face it at once, because contracts are among the most sensitive documents a business has. Section~\ref{sec:privacy} explains what the demo app does and does not do with an uploaded contract, and what a real deployment would need to add.
+
+\subsection{Data Handling and Privacy}
+\label{sec:privacy}
+The demo invites users to paste their own contracts, so we state exactly what happens to them.
+
+In the demo, all the models run locally. The DistilBERT models, the TF--IDF model and the FLAN-T5 summarizer are loaded from disk and run in the same program as the app, so no contract text leaves the computer the app runs on. An uploaded \texttt{.pdf}, \texttt{.docx} or \texttt{.txt} file is read into memory and turned into text on that computer. Nothing is saved to disk, no database or log keeps the text, and no usage data is collected. The text exists only in Streamlit's memory while the page is open and is gone when the browser session ends. The report the user can download is created on request and saved only where the user chooses.
+
+All of this holds only because the demo runs on the user's own computer. On a shared server, the same code would put the user's contract in the memory of a machine they do not control, and Streamlit alone would not stop the server's owner from reading it. The privacy comes from where the app runs, and the app itself does nothing extra to protect it.
+
+Some protections are missing on purpose and would be needed for real use. There is no login, so anyone who can reach the computer can open the app. There is no file-size limit beyond Streamlit's default and no time limit, so a very large upload can keep the app busy. PDF and Word files are read with standard open-source libraries (\texttt{pypdf} and \texttt{python-docx}), and a real deployment would need to treat these files as untrusted input, because a harmful file could try to attack the program that reads it. There is no rule for keeping data, because no data is kept. Party names are not removed before processing, which would matter if any part of the system were moved to an online model service.
+
+Our rule for any future change follows from this. As soon as any part of the system calls an online service, privacy changes completely, because the contract would be sent to someone else and might be kept by them. The current design avoids this by using small local models. We think this is worth keeping for its own sake, and it is one of the few places where the limits we worked under led to a better design.
+
+\section{Standards}
+No formal engineering standard applies to a research prototype like this, but the project followed several common practices:
+\begin{itemize}[itemsep=2pt]
+  \item Data format: CUAD uses the SQuAD question-answering format \cite{rajpurkar2016squad}, and our clause-text model uses the standard SQuAD start/end-token setup, so the data works with common question-answering tools.
+  \item Licenses and credit: the dataset, the pre-trained models and all software are used under their open-source licenses (CUAD under CC~BY~4.0; DistilBERT, FLAN-T5, \texttt{transformers} and Streamlit under Apache~2.0; PyTorch and scikit-learn under BSD licenses), and they are credited in the references.
+  \item Testing practice: we followed standard machine-learning practice, with a separate test set split by contract, no tuning on the test set, confidence intervals from a bootstrap over contracts \cite{efron1979bootstrap}, and standard scores (F1, exact match, ROUGE-L \cite{lin2004rouge}).
+  \item Repeatability: Appendix~\ref{app:repro} gives a checklist covering the software versions, data, seeds, file checksums and commands, and all code and reports are kept in Git.
+  \item Writing: references use the IEEE style, and this report follows the Brac University CSE400 report template.
+\end{itemize}
+
+\section{Project Management Plan}
+\label{sec:pm}
+\subsection{Schedule}
+The project was done by a team of three during 2026. Table~\ref{tab:schedule} shows the main stages and what each one produced.
+
+\begin{table}[!ht]
+\centering
+\caption{Project schedule}
+\label{tab:schedule}
+\small
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{>{\raggedright\arraybackslash}p{2.6cm} >{\raggedright\arraybackslash}p{6.0cm} >{\raggedright\arraybackslash}p{4.8cm}}
+\toprule
+\textbf{Period (2026)} & \textbf{Activities} & \textbf{Deliverables}\\
+\midrule
+Before June & Problem definition, literature review, initial design including a cross-clause rule engine & Project proposal\\
+\addlinespace
+June & Data acquisition, wide-to-long preprocessing, exploratory data analysis & EDA notebook\\
+\addlinespace
+July & Contract-level 80/20 split; TF--IDF baseline; training of the presence, span and summarizer models; standalone evaluation; Clausify application & Trained models, \texttt{test.ipynb}, Clausify prototype\\
+\addlinespace
+August & Supervisor review: training-budget and seed controls, cluster bootstrap, span and end-to-end evaluation; second review: risk-weighted evaluation, threshold and calibration, window-score rules, split variance & Project and findings reports, analysis scripts\\
+\addlinespace
+September & Write-up of the full report and a conference-style paper; presentation & Report, paper, presentation slides\\
+\addlinespace
+October & Viva preparation; re-training and re-testing of each model; whole-window re-run with validation tuning and a control run; final report in the CSE400 template & Final project report, updated app\\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+\subsection{Budget}
+The project cost no money. The dataset, the pre-trained models and all software are free, and all training and testing ran on a laptop the team already owned. No cloud computing, paid services or paid labeling were used.
+
+\subsection{Resource management}
+The one shared laptop was the scarcest resource. Training runs were done one at a time, because the MPS backend does not free GPU memory between runs in the same program, and the summarizer was trained on the CPU for the same reason (Section~\ref{sec:engineering}). Everything needed for testing (the split and the five trained models: presence, TF--IDF, span, summarizer and clause classifier) was saved to disk, so tests could be repeated without retraining. Code, notebooks and reports were kept in Git.
+
+\section{Risk Management}
+Table~\ref{tab:projrisk} lists the main risks we found during the project and what we did about each one. Several of them actually happened, and the last column records the response.
+
+\begin{table}[!htbp]
+\centering
+\caption{Risk management plan}
+\label{tab:projrisk}
+\small
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{>{\raggedright\arraybackslash}p{4.1cm} >{\raggedright\arraybackslash}p{1.5cm} >{\raggedright\arraybackslash}p{7.6cm}}
+\toprule
+\textbf{Risk} & \textbf{Impact} & \textbf{Mitigation}\\
+\midrule
+First-choice backbone unstable on available hardware & High & Occurred (DeBERTa-v3 produced NaN gradients on MPS). Switched to DistilBERT; the method is unchanged and the backbone can be swapped back on CUDA hardware.\\
+\addlinespace
+GPU memory exhaustion during training & Medium & Occurred. One training run per process; summarizer trained on CPU.\\
+\addlinespace
+Data leakage between train and test & High & Contract-level split reused by all three models; retrieval and inference never use gold offsets; ensemble is parameter-free (Section~\ref{sec:leakage}).\\
+\addlinespace
+Optimistic results from test-set tuning & High & First setup: no hyperparameter was tuned (Section~\ref{sec:valprotocol}). Re-run: every setting chosen on 81 validation contracts taken from the training split, and the test set scored once (Section~\ref{sec:v2}).\\
+\addlinespace
+Over-claiming small differences between models & Medium & Cluster-bootstrap confidence intervals, seed, budget and split controls (Section~\ref{sec:bootstrap} onwards).\\
+\addlinespace
+An architecture that cannot reach the required recall & High & Retrieval ceiling measured before training (64\%), which ruled out the retrieval design at no training cost (Section~\ref{sec:ceiling}).\\
+\addlinespace
+Schedule overrun from long training runs & Medium & Distilled models (about 1.5 hours of training for the first setup); subsampled training sets; saved artifacts so evaluation needs no retraining.\\
+\addlinespace
+Loss of work or results & Medium & Version control on GitHub; trained weights backed up before any re-training.\\
+\addlinespace
+Users over-trusting the application & High & Not-legal-advice notice; risk badge presented as more reliable than quoted text; limitations stated in the application (Section~\ref{sec:demolimits}).\\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+\section{Economic Analysis}
+Developing the system cost no money: the data, models and software are free, and the laptop was already owned (Section~\ref{sec:pm}). The real cost was the team's time and about twenty hours of laptop computing.
+
+Running it is also cheap. The models run on a CPU with about 2.1\,GB of memory, so the system can run on ordinary hardware with no cost per contract. Table~\ref{tab:econ} compares this with the two options a user has today.
+
+The main benefit is quick sorting: the system points the reader to the parts of a long contract that most likely matter and explains them in plain language, at almost no cost. Expert time in this field is expensive (the CUAD labels alone are said to represent about two million US dollars of lawyers' time \cite{hendrycks2021cuad}), so even saving part of the time needed to find key clauses is worth something.
+
+The benefit is limited by how reliable the system is. Only 59.6\% of real clauses get through the whole system with the app's setting (Section~\ref{sec:spanv2}), and it still misses 9.7\% of High-risk clauses on whole contracts and 11.4\% as the app reads long ones (Sections~\ref{sec:v2} and~\ref{sec:demolimits}). The system is a free first look at a contract and cannot replace a lawyer.
+
+\begin{table}[H]
+\centering
+\caption{Cost--benefit comparison}
+\label{tab:econ}
+\small
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{>{\raggedright\arraybackslash}p{3.0cm} >{\raggedright\arraybackslash}p{3.0cm} >{\raggedright\arraybackslash}p{3.4cm} >{\raggedright\arraybackslash}p{3.6cm}}
+\toprule
+ & \textbf{Lawyer review} & \textbf{Hosted LLM service} & \textbf{This system (local)}\\
+\midrule
+Marginal cost per contract & High (professional fees) & Per-request fee & Near zero\\
+Time per contract & Hours to days & Seconds & About a minute\\
+Privacy & Confidential & Contract leaves the user's machine & Contract stays on the machine\\
+Reliability & Expert judgment & Unmeasured on this task & Measured; misses many clauses\\
+Legal standing & Legal advice & None & None\\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
+

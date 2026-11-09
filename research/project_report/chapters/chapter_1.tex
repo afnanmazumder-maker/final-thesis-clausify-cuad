@@ -1,0 +1,112 @@
+\section{Background}
+Contracts are part of almost everything people and businesses do, and reading them takes a lot of time. A typical contract in our dataset is about 33{,}000 characters long (roughly 5{,}000 words), and the longest is more than 338{,}000 characters. Somewhere in that text are the parts that decide what the signer is agreeing to: who owns new intellectual property, whether there is a limit on how much you can owe, whether the contract renews on its own, and whether you are stopped from working with competitors after it ends. Having a lawyer read a contract takes hours and costs money that many people and small businesses cannot afford, so people often sign contracts they do not fully understand and take on risks they never noticed.
+
+The Contract Understanding Atticus Dataset (CUAD) \cite{hendrycks2021cuad} was created to help automate this kind of review. It has 510 real business contracts in which legal experts marked every clause that belongs to one of 41 important categories, work said to be worth about two million US dollars of lawyers' time. CUAD treats the problem as finding text: given a category, find the clause. Once it finds a clause such as ``Uncapped Liability'', it stops. It does not warn the reader what the clause means for them, explain it in simple words, or check how clauses affect each other.
+
+\subsection{System at a Glance}
+Chapter~4 explains the system in detail, and Figure~\ref{fig:overview} shows it in one picture. The system answers three questions about a contract in order: \emph{what is in it}, \emph{where is it}, and \emph{what does it mean}. CUAD was built to test the first two. The third step, shaded in the figure, is what this project adds.
+
+\begin{figure}[ht]
+\centering
+\begin{adjustbox}{max width=\textwidth}
+\begin{tikzpicture}[
+  node distance=6mm,
+  box/.style={draw, rounded corners=2pt, minimum height=19mm, text width=25mm,
+              align=center, font=\small, fill=blue!6},
+  new/.style={box, fill=orange!15},
+  arr/.style={-{Stealth[length=2.5mm]}, thick}
+]
+\node[box] (a) {\textbf{Contract}\\[2pt]{\scriptsize raw text}\\{\scriptsize median 33k chars}};
+\node[box, right=of a] (b) {\textbf{What is in it?}\\[2pt]{\scriptsize presence over}\\{\scriptsize 41 categories}};
+\node[box, right=of b] (c) {\textbf{Where is it?}\\[2pt]{\scriptsize exact clause}\\{\scriptsize text extracted}};
+\node[new, right=of c] (d) {\textbf{What does it mean?}\\[2pt]{\scriptsize risk level +}\\{\scriptsize plain English}};
+\draw[arr] (a) -- (b);
+\draw[arr] (b) -- (c);
+\draw[arr] (c) -- (d);
+
+\draw[decorate, decoration={brace, mirror, amplitude=4pt}]
+  ($(b.south west)+(0,-1.5mm)$) -- ($(c.south east)+(0,-1.5mm)$)
+  node[midway, below=4pt, font=\scriptsize\itshape] {CUAD's original task};
+\draw[decorate, decoration={brace, mirror, amplitude=4pt}]
+  ($(d.south west)+(0,-1.5mm)$) -- ($(d.south east)+(0,-1.5mm)$)
+  node[midway, below=4pt, font=\scriptsize\itshape] {added here};
+\end{tikzpicture}
+\end{adjustbox}
+\caption{Three questions the system answers}
+\label{fig:overview}
+\end{figure}
+
+\section{Rationale of the Study or Motivation}
+Our project tries to close the gap between finding a clause and understanding it. On top of finding clauses we add two things: a simple risk table that gives every clause category a High, Medium or Low level, judged from the side of the weaker party, and a text model meant to turn each clause into one plain-English sentence. We built the clause-finding models and the risk table into \emph{Clausify}, a prototype web app where a user pastes or uploads a contract and gets back a list of clauses sorted by risk. The text model worked less well than we hoped: it learned to repeat a fixed sentence for each category instead of describing the actual clause (Section~\ref{sec:summ}). Chapters~5 and~6 report these results as they are.
+
+The reason for this study is practical as well as academic. Earlier work on CUAD answers the question ``where is the clause?'' for a lawyer who already knows what to look for. The people who need help most, such as individuals, freelancers and small businesses who sign contracts without a lawyer, also need to know which clauses matter most to them and what each one means in everyday language. A system that answers those questions, and says how often it is wrong, could make contract review possible for people who cannot pay for it today. We also wanted to measure how well such a system works instead of assuming it, since a contract-review tool that looks confident but misses clauses without saying so is worse than no tool at all.
+
+\section{Problem Statement}
+The project works on four connected problems:
+\begin{enumerate}[itemsep=2pt]
+  \item Finding which clauses are present. For each of the 41 CUAD categories, decide whether a contract has at least one clause of that type. The main difficulty is length: a typical contract is about 16$\times$ longer than the amount of text a standard transformer model can read at once.
+  \item Finding the exact clause text. For each category that is present, find the exact words of the clause in the contract. We treat this as a question-answering task in the same style as SQuAD \cite{rajpurkar2016squad}.
+  \item Explaining in plain language. Rewrite each clause as one sentence that a non-lawyer can understand.
+  \item Showing the risk. Give every clause found a risk level and a one-line reason, so the result reads like a ranked list of warnings. We did not test whether this helps users (Section~\ref{sec:limitations}).
+\end{enumerate}
+
+\subsection{Research Questions}
+\label{sec:rqs}
+Our objectives lead to five research questions, which the rest of this report answers. We give the short answers here so that readers can check each claim against the evidence without searching for it.
+
+\begin{description}[itemsep=4pt, leftmargin=1.6cm]
+  \item[RQ1] \emph{Can a transformer that reads a contract in small windows beat a simple word-based model that reads the whole contract, at finding which clauses are present?}\\
+  \textbf{It ties, and together they win.} In our first setup the simple model won by $+0.082$ micro-F1, and the gap survived more training data (Section~\ref{sec:budget}) and three random seeds (Section~\ref{sec:seeds}). That setup let the transformer read only about half of each window. With the whole window read and both models tuned on the same validation split, the transformer ties the tuned simple model (0.797 against 0.785), and an ensemble of the two beats it (0.809, with an interval that excludes zero; Section~\ref{sec:v2}).
+  \item[RQ2] \emph{How well can the system find the exact clause text in long contracts?}\\
+  The first span model reached a token-F1 of 0.764 (95\% CI $[0.743, 0.782]$) only on windows centered on the clause. On plain windows that contain the clause it reached 0.366, and 0.350 when the presence model chose the window with the app's setting. Retrained on the chunks it really reads, it reaches 0.779 on plain windows and 0.673 when the presence model chooses (Sections~\ref{sec:span} and~\ref{sec:e2e}).
+  \item[RQ3] \emph{Does the summarizer really describe each specific clause in plain English?}\\
+  \textbf{No.} For every input it copies one of 41 sentences we wrote in advance. Against clause-specific reference sentences, it scores no better than just printing that fixed sentence without any model. Larger FLAN-T5 models, up to about 780 million parameters, used without fine-tuning mostly copy the clause instead of explaining it (Section~\ref{sec:summ}).
+  \item[RQ4] \emph{How do errors add up across the whole system?}\\
+  They multiply, and at first it was worse than the separate scores suggested: with the app's setting only 22.1\% of real clauses got through all three steps, compared with the $\approx$77\% that the separate scores predicted (Section~\ref{sec:e2e}). Both causes were in our own setup. Reading the whole window fixed most wrong-window choices, and retraining the span model on the chunks it really reads raised the share to 59.6\% (Section~\ref{sec:spanv2}). What is left is split about evenly between the two causes.
+  \item[RQ5] \emph{Do the system's mistakes avoid the clauses that would hurt a signer most?}\\
+  \textbf{Not when the setup is chosen by overall score.} In the first setup, the ensemble with the best micro-F1 misses 36.9\% of High-risk clauses, while the model we called weaker misses only 15.9\% (Section~\ref{sec:riskeval}). Choosing the setup on a validation split for recall instead, the transformer misses 9.7\% when it reads whole contracts and 11.4\% as the app reads long ones (Sections~\ref{sec:v2} and~\ref{sec:demolimits}), and this is what the app uses.
+\end{description}
+
+RQ3 is answered negatively and RQ4 partly so, and the answers to RQ1, RQ4 and RQ5 changed once we found flaws in our own setup. We report all of them as results of the project, because each is something a reader would have got wrong by looking only at the separate model scores.
+
+\subsection{Contributions}
+\label{sec:contrib1}
+\begin{enumerate}[itemsep=2pt]
+  \item A complete system that goes from a raw contract to a risk-sorted report: it finds which of the 41 clause types are present, quotes the clause, gives the type a risk level with a reason, and adds a plain-English line. CUAD work so far stops at finding the clause.
+  \item A controlled comparison of a whole-document word model and a window-based transformer for deciding which clauses a contract contains. It shows how a strong simple baseline can look unbeatable when the transformer reads only half of each window and is held to an untuned threshold, and that the two tie once both are tuned on the same validation split, with their ensemble ahead.
+  \item A risk table for the 41 CUAD categories, judged from the weaker party's side with written rules and a reason for each level, which no earlier CUAD work provides (Section~\ref{sec:riskcriteria}).
+  \item \emph{Clausify}, a working app that runs all the trained models on a user's own contract, with a recall-first setting chosen to miss as few High-risk clauses as possible.
+\end{enumerate}
+Section~\ref{sec:contributions} gives the full list, including the negative results.
+
+\section{Objective}
+\begin{itemize}[itemsep=2pt]
+  \item Build and fairly test a complete three-model CUAD system on an ordinary laptop, using an 80/20 split by contract so that every reported number comes from contracts the models have never seen.
+  \item Check whether a transformer really beats a strong simple model at finding which clauses are present.
+  \item Measure how well the exact clause text is found, using token-level F1 and exact match on the test set.
+  \item Test the summarizer against two different sets of reference sentences, because one automatic score turned out to measure the reference sentences more than the task.
+  \item Measure how many clauses survive the whole system from start to finish, as well as the score of each step.
+  \item Put the trained models into a working demo app that shows clauses sorted by risk.
+\end{itemize}
+
+\section{Methodology in Brief}
+We tested every design before building on it, using one fixed 80/20 split of CUAD by contract (408 training contracts and 102 test contracts). After exploring the data (Section~\ref{sec:eda}), we first built a simple word-based model (TF--IDF with logistic regression) that reads the whole contract, before training any transformer. We also measured the highest recall a ``search first'' design could ever reach (Section~\ref{sec:ceiling}). Based on that, we trained a DistilBERT model that scores the contract in small windows and takes the highest window score as the answer for the whole contract (multiple-instance learning), and we combined it with the simple model using an AND rule that reports a clause only when both models agree. A DistilBERT question-answering model finds the exact clause text, a fine-tuned FLAN-T5-small model writes a one-sentence plain-English explanation, and a hand-made table gives each of the 41 categories a High, Medium or Low risk level.
+
+Every model was tested once on the 102 test contracts. We report each score with confidence intervals from a bootstrap over contracts, and we checked how the results change with the amount of training data, the random seed, the way window scores are combined, the decision threshold and the train/test split. We also tested the full system from start to finish. These checks led us to a flaw in the first setup, and we re-ran the presence comparison with the transformer reading whole windows and both models tuned on a validation split taken from the training contracts. The whole-system test also showed that the span model had been trained on windows unlike the ones it reads, so we retrained it on those. Finally, we put the trained models into \emph{Clausify}, a Streamlit web app that gives a risk-sorted clause report for any contract. Chapter~4 describes the method in full.
+
+\section{Scopes and Challenges}
+The project covers English business contracts like those in CUAD: 510 contracts from US SEC filings, marked for 41 clause categories. Within that scope it handles four tasks (finding which clauses are present, finding their exact text, explaining them in plain language and showing their risk level) and delivers a working prototype app. Some things are left out on purpose: legal advice of any kind; contracts in other languages or countries (including Bangladeshi contracts, which inspired the work but were not tested); judging the risk of a clause's exact wording; finding conflicts between clauses; and a formal user study of the app. All models were sized so they can be trained and run on one ordinary laptop.
+
+Six challenges shaped the design:
+\begin{enumerate}[itemsep=2pt]
+  \item Very long documents. A typical contract is about 33{,}000 characters, roughly 16$\times$ the 512-token limit of a standard transformer (about 2{,}000 characters), and the longest contract is more than 338{,}000 characters, about 170$\times$.
+  \item Very uneven categories. Some categories appear in 100\% of contracts and some in only 2.5\%, and a few have only a handful of examples in the whole dataset.
+  \item A small, fixed dataset. The 510 contracts are all there is, and expert marking is too costly to add more, so we had to be careful about over-fitting and about test data leaking into training.
+  \item Limited hardware. Training ran on an Apple-Silicon laptop without a CUDA GPU. Our first-choice model (DeBERTa-v3) was unstable on the MPS backend, and GPU memory was not freed between training runs.
+  \item No plain-language answers to learn from. CUAD has no plain-English versions of clauses, so we had to write our own reference sentences, which limited what the summarizer could learn.
+  \item No agreed answer for risk. Contract risk depends on which side you are on, the situation and the country, and there is no expert-checked risk model for CUAD's 41 categories.
+\end{enumerate}
+
+\section{Report Organization}
+The rest of this report is organized as follows. Chapter~2 reviews background and earlier work. Chapter~3 sets out the system's requirements, its effect on society, the environment, ethics and cost, and the project plan. Chapter~4 explains the method: how we designed the system, which other designs we considered, how the data was prepared, and how the models and the Clausify app were built. Chapter~5 analyses the results on the test set, including the statistics and the changes they led to. Chapter~6 sums up the findings, contributions and limits, and suggests future work. The appendices contain the full 41-category risk table, a checklist for repeating the work and the layout of the project files.
+

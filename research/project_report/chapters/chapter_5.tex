@@ -1,0 +1,796 @@
+\section{Design Process or Methodology Overview}
+The design follows the goals and limits from Chapter~3 and a ``test before you build'' process with four rules: (i) build a strong, simple baseline before any complex model; (ii) measure the best result a design could ever reach before spending training time on it; (iii) fix the train/test split by contract once, use it everywhere, and never tune on the test set; and (iv) test each step on its own, then test the whole system from start to finish. The result is a three-step system with a risk layer on top.
+
+The system works in steps (Figure~\ref{fig:pipeline}). The contract text is cut into windows. The presence step decides which of the 41 categories the contract contains, and the span step finds the exact clause text for each category found. The risk layer adds the category's High\slash Medium\slash Low level, a text-generation step adds a plain-English sentence, and the output is a report sorted by risk. (The Clausify app runs every step; Section~\ref{sec:clausify}.) Section~\ref{sec:summ} shows that the last step picks one of 41 sentences written in advance instead of summarizing the clause in front of it, so ``sorting into categories and showing a template'' describes the system better than ``summarizing''. Figure~\ref{fig:pipeline} names the steps and the models behind them, and Figure~\ref{fig:dataflow} at the end of this chapter shows the data passed between them, which helps when reading the implementation.
+
+\begin{figure}[ht]
+\centering
+\begin{adjustbox}{max width=\textwidth}
+\begin{tikzpicture}[
+  node distance=4mm and 6mm,
+  stage/.style={draw, rounded corners=2pt, minimum height=9mm, minimum width=30mm,
+                align=center, font=\small, fill=blue!6},
+  added/.style={stage, fill=orange!15},
+  arr/.style={-{Stealth[length=2.5mm]}, thick}
+]
+\node[stage] (a) {Contract\\text};
+\node[stage, right=of a] (b) {Windowing \&\\preprocessing};
+\node[stage, right=of b] (c) {41-clause presence\\(TF--IDF + DistilBERT)};
+\node[added, below=of c] (d) {Risk prioritization\\High / Med / Low};
+\node[stage, left=of d] (e) {Span extraction\\(DistilBERT-QA)};
+\node[added, left=of e] (f) {Plain-English\\summary (FLAN-T5)};
+\node[added, below=of e] (g) {Risk-prioritized report};
+\draw[arr] (a) -- (b);
+\draw[arr] (b) -- (c);
+\draw[arr] (c) -- (d);
+\draw[arr] (d) -- (e);
+\draw[arr] (e) -- (f);
+\draw[arr] (f.south) |- (g.west);
+\draw[arr] (e) -- (g);
+\end{tikzpicture}
+\end{adjustbox}
+\caption{System pipeline}
+\label{fig:pipeline}
+\end{figure}
+
+\section{Preliminary Design or Design (Model) Specification}
+For each step we considered other designs and tested them where we could before choosing one. For finding which clauses are present we compared three designs (a simple word-based model that reads the whole contract, a ``search first, then classify'' transformer, and a transformer that reads the contract in sliding windows) and three ways of combining the simple model with the transformer. We also considered sparse-attention models and rejected them for the reasons in Section~\ref{sec:lit_long}, then measured their cost later (Section~\ref{sec:lfbench}). The design chosen for each step is described below. The step numbers come from the original project plan, in which the plain-English explanation was Stage~1 and the two transformer steps were Stages~2A and~2B; we kept them because the training scripts are named after them.
+
+\subsection{Stage 2A: Presence Classification}
+
+\subsubsection{A strong baseline first: full-document TF--IDF}
+A bag-of-words model has no limit on input length, so a TF--IDF model can read the entire contract, which no windowed transformer can. We built a TF--IDF vocabulary (20{,}000 features, single words and word pairs, sublinear TF, $\text{min\_df}=2$) from the 408 training contracts and trained one balanced logistic-regression classifier per category. Legal writing is very repetitive (``\emph{This Agreement shall be governed by the laws of the State of \ldots}''), so the words alone carry a lot of information. This baseline sets the score every neural model has to beat.
+
+\subsubsection{Measuring the retrieval ceiling, and dropping retrieval}
+\label{sec:ceiling}
+The obvious way to give a long contract to a transformer is to search first. The text is cut into 2{,}000-character windows that move forward 1{,}500 characters at a time (drawn in Figure~\ref{fig:windows}), each window is scored by its TF--IDF similarity to the category, and the model sees only the best window or windows. The search uses only information that is available when the app runs (the category name or its CUAD question, never the answer), so no answer information leaks in.
+
+Before training anything we measured the search hit-rate: how often the chosen window really contains the clause. Figure~\ref{fig:ceiling} shows how this works and why the result is a hard limit. No model after the search can do better than this number, because a clause in a window the search never picks can never be found. The best search we tried (using the category name and keeping the top 3 windows) reached only 64.0\% (Table~\ref{tab:retrieval}). The CUAD question text did worse than the plain category name, because the questions share so much standard wording that they look almost the same. A recall limit of 0.64 is well below the baseline's recall of 0.81 (and its micro-F1 of 0.775), so a search-first transformer would lose before it was even trained. The measurement was quick and saved us a wasted training run.
+
+The number needs one note. We measured the limit of word-based search only. Every search in Table~\ref{tab:retrieval} compares windows by shared words, so a clause written without the words of its category name cannot be found even when it is clearly there. A meaning-based search, which turns both the question and each window into vectors, would probably raise the 64.0\% figure, possibly above the baseline, and we did not test one. The fair conclusion is therefore narrow: word-based search sets a limit that is too low to build on. That was enough to move us to the window design described below. Whether meaning-based search could raise the limit far enough to compete is an open question, listed as future work.
+
+\begin{figure}[ht]
+\centering
+\begin{adjustbox}{max width=\textwidth}
+\begin{tikzpicture}[x=1mm, y=1mm, font=\scriptsize,
+  wbox/.style={draw=gray!55, fill=gray!8, minimum width=15mm, minimum height=7mm,
+               inner sep=0pt, rounded corners=1pt},
+  sel/.style={draw=blue!65, fill=blue!20, minimum width=15mm, minimum height=7mm,
+              inner sep=0pt, rounded corners=1pt, line width=0.7pt}
+]
+% ---- query --------------------------------------------------------------
+\node[draw=gray!60, fill=orange!12, rounded corners=1pt, inner sep=2.5pt] (q) at (67,22)
+  {category query $q_c$ = ``Governing Law''};
+\draw[-{Stealth[length=2mm]}, gray!65] (67,17.6) -- (67,11.2);
+\node[anchor=west, font=\tiny, text=gray!45!black] at (70,14.4)
+  {TF--IDF cosine similarity, computed for every window};
+
+% ---- windows ------------------------------------------------------------
+\foreach \i/\x/\s in {1/0/0.12, 3/34/0.08, 5/68/0.19, 6/85/0.05, 8/119/0.10} {
+  \node[wbox] (w\i) at (\x+7.5,7) {$w_{\i}$};
+  \node[font=\tiny, text=gray!45!black] at (\x+7.5,1.5) {\s};
+}
+\foreach \i/\x/\s in {2/17/0.31, 4/51/0.27, 7/102/0.22} {
+  \node[sel] (w\i) at (\x+7.5,7) {$w_{\i}$};
+  \node[font=\tiny, text=blue!45!black] at (\x+7.5,1.5) {\textbf{\s}};
+}
+% gold-bearing window
+\draw[riskhigh, line width=0.9pt, rounded corners=1pt] (67.2,2.8) rectangle (83.8,11.2);
+
+% ---- legend + verdict ---------------------------------------------------
+\node[anchor=west, font=\tiny] at (0,-4)
+  {\textcolor{blue!65!black}{$\blacksquare$}~selected: top-$k{=}3$ windows sent to the model
+   \qquad \textcolor{riskhigh}{$\square$}~window that actually holds the answer};
+\node[anchor=west, align=left, font=\scriptsize] at (0,-10.5)
+  {The gold window $w_5$ is \textbf{not} in the top~3, so this (contract, category) pair is
+   \textbf{unreachable}:\\ no model downstream of the retriever can ever recover it. Repeated over
+   all positive pairs, this yields a hit-rate of 64.0\%.};
+
+% ---- ceiling bar --------------------------------------------------------
+\fill[risklow!40] (0,-30) rectangle (89.6,-23);
+\fill[gray!18]    (89.6,-30) rectangle (140,-23);
+\draw[gray!60]    (0,-30) rectangle (140,-23);
+\draw[gray!60]    (89.6,-30) -- (89.6,-23);
+\node[font=\tiny] at (44.8,-26.5) {recall still attainable: \textbf{64.0\%}};
+\node[font=\tiny, text=gray!45!black] at (114.8,-26.5) {lost before training starts: 36.0\%};
+\draw[riskhigh, dashed, line width=0.8pt] (108.5,-32) -- (108.5,-20.5);
+\node[anchor=south, font=\tiny, text=riskhigh!70!black] at (108.5,-20.2)
+  {full-document TF--IDF baseline already scores 0.775};
+\node[anchor=north, font=\tiny, text=gray!45!black] at (0,-30.6) {0\%};
+\node[anchor=north, font=\tiny, text=gray!45!black] at (140,-30.6) {100\%};
+\end{tikzpicture}
+\end{adjustbox}
+\caption{Retrieval ceiling}
+\label{fig:ceiling}
+\end{figure}
+
+\begin{table}[ht]
+\centering
+\caption{Retrieval hit-rates}
+\label{tab:retrieval}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Query strategy} & \textbf{Top-$k$} & \textbf{Hit-rate}\\
+\midrule
+CUAD question text        & 1 & 38.6\%\\
+Category name             & 1 & 44.6\%\\
+\textbf{Category name}    & \textbf{3} & \textbf{64.0\%}\\
+Name + question           & 3 & 61.5\%\\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+
+{\footnotesize\singlespacing \emph{Note.} The hit-rate is the recall ceiling a retrieval-based design would impose.\par}
+\end{table}
+
+\subsubsection{Sliding-window max-pooling (multiple-instance learning)}
+\label{sec:mil}
+To remove this limit we trained a window-level classifier instead. Given a pair (category question, window), it predicts whether that window contains a clause of that category. Figure~\ref{fig:windows} shows how the windows are made. A 2{,}000-character window that moves forward 1{,}500 characters at a time leaves a 500-character overlap between neighbouring windows. The typical (median) clause is 196 characters long (Section~\ref{sec:eda}), much shorter than the overlap, so every clause fits completely inside at least one window and none falls between two.
+
+\begin{figure}[ht]
+\centering
+\begin{adjustbox}{max width=\textwidth}
+\begin{tikzpicture}[x=1mm, y=1mm, font=\scriptsize,
+  dim/.style={{Stealth[length=1.6mm]}-{Stealth[length=1.6mm]}, gray!65!black, line width=0.5pt},
+  win/.style={draw=blue!55, fill=blue!10, rounded corners=1pt},
+  poswin/.style={draw=risklow!85, fill=risklow!20, rounded corners=1pt}]
+
+% ---- overlap band (behind everything) -----------------------------------
+\fill[orange!30, opacity=0.7] (15,-42) rectangle (20,0);
+
+% ---- the document -------------------------------------------------------
+\fill[gray!12] (0,0) rectangle (110,7);
+\draw[gray!55] (0,0) rectangle (110,7);
+\fill[riskhigh!60] (61,0) rectangle (63,7);
+\node[anchor=west, text=gray!50!black, font=\tiny] at (2,3.5) {contract text};
+\node[anchor=west] at (111.5,3.5) {$\cdots$};
+\node[anchor=west, text=riskhigh!70!black, font=\tiny] at (70,11)
+  {gold clause: 196 chars, drawn to scale};
+\draw[riskhigh!75, -{Stealth[length=1.6mm]}] (69.5,10.6) -- (63.4,7.4);
+
+% ---- staircase of windows ----------------------------------------------
+\foreach \i/\y in {0/-5, 1/-13, 2/-21} {
+  \draw[win] (15*\i,\y-5) rectangle (15*\i+20,\y);
+  \node[text=blue!45!black, font=\tiny] at (15*\i+10,\y-2.5) {$w_{\i}$};
+}
+\foreach \i/\y in {3/-29, 4/-37} {
+  \draw[poswin] (15*\i,\y-5) rectangle (15*\i+20,\y);
+  \node[text=risklow!35!black, font=\tiny] at (15*\i+10,\y-2.5) {$w_{\i}$};
+  \fill[riskhigh!60] (61,\y-5) rectangle (63,\y);
+}
+\node[anchor=west, text=risklow!30!black, font=\tiny, align=left] at (86,-36)
+  {both windows contain\\the clause in full};
+\draw[risklow!70, -{Stealth[length=1.6mm]}] (85.5,-34.5) -- (64,-31.5);
+\draw[risklow!70, -{Stealth[length=1.6mm]}] (85.5,-37.5) -- (64,-39.5);
+
+% ---- dimensions ---------------------------------------------------------
+\draw[dim] (0,-2.5) -- (20,-2.5);
+\node[anchor=west, font=\tiny, text=gray!45!black] at (22,-2.5)
+  {window $=$ 2{,}000 characters};
+\draw[dim] (0,-10.5) -- (15,-10.5);
+\node[anchor=west, font=\tiny, text=gray!45!black] at (22,-10.5)
+  {stride $=$ 1{,}500 characters};
+\draw[gray!55, dashed, line width=0.4pt] (15,-44) -- (15,7.5);
+\draw[gray!55, dashed, line width=0.4pt] (20,-44) -- (20,7.5);
+\node[anchor=north, align=center, font=\tiny, text=orange!50!black] at (17.5,-44)
+  {overlap $=$ 500 chars, at every step};
+\node[font=\normalsize, text=gray!55!black] at (67.5,-45.5) {$\vdots$};
+\node[anchor=west, font=\tiny, text=gray!45!black] at (71,-45.5)
+  {continuing to $w_{21}$ for a median-length contract};
+\end{tikzpicture}
+\end{adjustbox}
+\caption{Sliding-window generation}
+\label{fig:windows}
+\end{figure}
+
+The training labels come from the marked character positions. Any window that contains a marked clause is positive, and for each (contract, category) pair we also take two random negative windows. This is normal supervised learning and does not leak answers: the labels only set the training targets, they never enter the model's input, and nothing from the answers is used when the app runs. The 408 training contracts give 53{,}662 window examples (39.2\% positive).
+
+When the app runs, the model scores every window of the contract, and the answer for the whole contract is the highest window score. This is the multiple-instance learning rule, shown in Figure~\ref{fig:mil}: the document is a bag of windows, the bag is positive if any window is positive, and taking the $\max$ does exactly that. Because the windows cover the whole document with overlap, every clause can be reached and the search limit disappears. The cost is precision, and Figure~\ref{fig:mil} also shows why. The maximum is taken over every window, so one wrong window anywhere marks the whole contract as positive. A typical contract has 22 windows (the median; the mean is 35), so the chance that some window passes the 0.5 threshold by mistake grows with length, and long contracts give more false alarms than short ones whatever they contain.
+
+\begin{figure}[ht]
+\centering
+\begin{adjustbox}{max width=\textwidth}
+\begin{tikzpicture}[x=1mm, y=1mm, font=\scriptsize,
+  win/.style={draw=gray!55, fill=gray!10, rounded corners=1pt,
+              minimum width=15mm, minimum height=6mm, inner sep=0pt},
+  hot/.style={draw=riskhigh, fill=riskhigh!15, rounded corners=1pt,
+              minimum width=15mm, minimum height=6mm, inner sep=0pt, line width=0.7pt},
+  enc/.style={draw=blue!55, fill=blue!12, rounded corners=1pt,
+              minimum width=24mm, minimum height=6mm, inner sep=0pt},
+  arr/.style={-{Stealth[length=1.8mm]}, gray!60!black, line width=0.5pt}
+]
+% rows: w1, w2 (firing), w3, vdots, wn
+\node[win] (w1) at (9,0)    {$w_1$};
+\node[hot] (w2) at (9,-9)   {$w_2$};
+\node[win] (w3) at (9,-18)  {$w_3$};
+\node[font=\normalsize, text=gray!55!black] at (9,-25) {$\vdots$};
+\node[win] (wn) at (9,-32)  {$w_n$};
+
+\node[enc] (e1) at (45,0)   {DistilBERT};
+\node[enc] (e2) at (45,-9)  {DistilBERT};
+\node[enc] (e3) at (45,-18) {DistilBERT};
+\node[font=\normalsize, text=gray!55!black] at (45,-25) {$\vdots$};
+\node[enc] (en) at (45,-32) {DistilBERT};
+
+\node (p1) at (77,0)   {$p_1 = 0.03$};
+\node[text=riskhigh!70!black] (p2) at (77,-9) {$\mathbf{p_2 = 0.91}$};
+\node (p3) at (77,-18) {$p_3 = 0.07$};
+\node[font=\normalsize, text=gray!55!black] at (77,-25) {$\vdots$};
+\node (pn) at (77,-32) {$p_n = 0.11$};
+
+\foreach \a/\b in {w1/e1, w2/e2, w3/e3, wn/en} \draw[arr] (\a) -- (\b);
+\foreach \a/\b in {e1/p1, e2/p2, e3/p3, en/pn} \draw[arr] (\a) -- (\b);
+
+% max node
+\node[draw=blue!65, fill=blue!15, rounded corners=1pt, minimum width=16mm,
+      minimum height=9mm, inner sep=1pt, align=center] (mx) at (103,-16)
+      {$\max\limits_i p_i$};
+\foreach \p in {p1,p2,p3,pn} \draw[arr] (\p) -- (mx);
+
+\node[anchor=west, align=left] (out) at (114,-16)
+  {$p_{\text{doc}} = 0.91 \geq 0.5$\\[1pt] $\Rightarrow$ category \textbf{present}};
+\draw[arr] (mx) -- (out);
+
+% annotations
+\node[anchor=north, align=center, font=\tiny, text=gray!45!black] at (60,-37)
+  {one model, shared weights: the input is the pair (category question $q_c$, window $w_i$)};
+\end{tikzpicture}
+\end{adjustbox}
+\caption{Multiple-instance max-pooling}
+\label{fig:mil}
+\end{figure}
+
+\subsubsection{The conjunctive ensemble}
+Compared category by category, the two models turned out to complement each other. The transformer does better where meaning matters (for example \emph{No-Solicit of Employees} and \emph{Liquidated Damages}), and the simple model does better on categories with clear keywords. We combine them with rules that have no settings to tune: AND (the $\min$ of the two scores), OR (the $\max$) and AVG (the average). We chose such rules on purpose so that nothing can be fitted to the test set. Figure~\ref{fig:ensemble_rule} shows the decision. The AND rule reports a clause only when both models agree, which removes many false alarms. For a wrong detection to survive, both models must make the same mistake on the same contract and category, and their mistakes are mostly independent. This wins back the precision that taking the maximum loses.
+
+\begin{figure}[ht]
+\centering
+\begin{adjustbox}{max width=\textwidth}
+\begin{tikzpicture}[x=1mm, y=1mm, font=\scriptsize,
+  mod/.style={draw=gray!60, fill=gray!10, rounded corners=1pt, text width=30mm,
+              align=center, minimum height=11mm, inner sep=1.5pt},
+  rule/.style={draw=gray!60, fill=gray!8, rounded corners=1pt, text width=24mm,
+               align=center, minimum height=8mm, inner sep=1.5pt},
+  pick/.style={rule, draw=blue!70, fill=blue!18, line width=0.8pt},
+  arr/.style={-{Stealth[length=1.8mm]}, gray!60!black, line width=0.5pt}
+]
+\node[draw=gray!60, fill=orange!12, rounded corners=1pt, text width=16mm, align=center,
+      minimum height=9mm, inner sep=1.5pt] (doc) at (9,0) {contract\\text};
+
+\node[mod] (bl) at (46,15) {TF--IDF $+$ LR\\{\tiny reads the \emph{whole} document}};
+\node[mod] (tr) at (46,-15) {DistilBERT MIL\\{\tiny max-pools over windows}};
+\draw[arr] (doc) -- (bl);
+\draw[arr] (doc) -- (tr);
+
+\node (pa) at (76,15)  {$p_{\text{tfidf}}$};
+\node (pb) at (76,-15) {$p_{\text{trans}}$};
+\draw[arr] (bl) -- (pa);
+\draw[arr] (tr) -- (pb);
+
+\coordinate (j) at (86,0);
+\draw[gray!60!black, line width=0.5pt] (pa) -- (86,15) -- (j);
+\draw[gray!60!black, line width=0.5pt] (pb) -- (86,-15) -- (j);
+\fill[gray!60!black] (j) circle (0.6mm);
+
+\node[pick] (rand) at (110,15)  {\textbf{AND}\\[1pt]$\min(p_a,p_b) \geq 0.5$};
+\node[rule] (ravg) at (110,0)   {AVG\\[1pt]$\tfrac{1}{2}(p_a{+}p_b) \geq 0.5$};
+\node[rule] (ror)  at (110,-15) {OR\\[1pt]$\max(p_a,p_b) \geq 0.5$};
+\foreach \r in {rand,ravg,ror} \draw[arr] (j) -- (\r);
+
+\node[anchor=west, font=\tiny, text=blue!45!black] at (124,15) {\textbf{0.779}};
+\node[anchor=west, font=\tiny, text=gray!45!black]  at (124,0)  {0.718};
+\node[anchor=west, font=\tiny, text=gray!45!black]  at (124,-15){0.692};
+\node[anchor=south, font=\tiny, text=gray!45!black, align=center] at (130,20)
+  {held-out\\micro-F1};
+
+\node[anchor=north, align=center, font=\tiny, text=gray!45!black] at (67,-24)
+  {All three rules are \textbf{parameter-free}: there is nothing to fit, so the test set cannot tune them.
+   AND fires only when \emph{both} models\\ cross the threshold, so a false positive has to be made
+   twice, independently, to survive.};
+\end{tikzpicture}
+\end{adjustbox}
+\caption{Ensemble rules}
+\label{fig:ensemble_rule}
+\end{figure}
+\subsection{Stage 2B: Span Extraction}
+\label{sec:spanmethod}
+This step needs the transformer, because a bag-of-words model cannot point to positions in the text. We fine-tune \texttt{DistilBertForQuestionAnswering}: the input is (CUAD question, window text), and the model predicts where the answer starts and ends. The character positions in \texttt{CUAD\_v1.json} are turned into token positions with the tokenizer's offset mapping.
+
+The project uses two window sizes, and mixing them up makes the design look inconsistent. The 2{,}000-character window of Section~\ref{sec:mil} is a presence window. It covers the document in order, because at that point we do not know where anything is. The window used here is a focus window, 1{,}200 characters long and placed around the marked answer so that the answer starts about 150 characters in. Figure~\ref{fig:focus} draws the two at the same scale. The smaller, centered window has a simple technical purpose: it keeps the answer inside the model's 320-token limit. With a 2{,}000-character window an answer near the end could be cut off, and the model would be trained on an example with the answer missing. This step also has no length limit at all, since it only searches inside a window that the presence step has already marked as relevant.
+
+This is how the first span model was trained, and the end-to-end test showed what it cost: the model learned to expect the answer near the start of its input (Section~\ref{sec:e2e}). We therefore trained a second span model on the chunks it really reads when the system runs, 1{,}200-character pieces of the presence window with the answer wherever it falls, or not there at all. Section~\ref{sec:spanv2} describes and tests it, and the app uses it.
+
+\begin{figure}[ht]
+\centering
+\begin{adjustbox}{max width=\textwidth}
+\begin{tikzpicture}[x=1mm, y=1mm, font=\scriptsize,
+  dim/.style={{Stealth[length=1.6mm]}-{Stealth[length=1.6mm]}, gray!65!black, line width=0.5pt}]
+
+% ---- presence window (Stage 2A) ----------------------------------------
+\fill[blue!10] (0,0) rectangle (120,8);
+\draw[blue!55] (0,0) rectangle (120,8);
+\fill[riskhigh!35] (54,0) rectangle (65.8,8);
+\draw[riskhigh]    (54,0) rectangle (65.8,8);
+\node[anchor=west, align=left, font=\tiny, text=gray!45!black] at (123,4)
+  {\textbf{Stage 2A}\\presence window\\2{,}000 chars, tiled};
+\node[anchor=south, font=\tiny, text=riskhigh!70!black] at (59.9,11.6) {gold answer};
+\draw[riskhigh!75, -{Stealth[length=1.6mm]}] (59.9,11.2) -- (59.9,8.6);
+
+% ---- focus window (Stage 2B) -------------------------------------------
+\fill[risklow!25] (45,-16) rectangle (117,-8);
+\draw[risklow!85] (45,-16) rectangle (117,-8);
+\fill[riskhigh!35] (54,-16) rectangle (65.8,-8);
+\draw[riskhigh]    (54,-16) rectangle (65.8,-8);
+\node[anchor=west, align=left, font=\tiny, text=gray!45!black] at (123,-12)
+  {\textbf{Stage 2B}\\focus window\\1{,}200 chars, re-centered};
+
+% ---- alignment guides + offset -----------------------------------------
+\draw[gray!55, dashed, thin] (45,-16) -- (45,-2);
+\draw[gray!55, dashed, thin] (54,-16) -- (54,-1);
+\draw[dim] (45,-4.2) -- (54,-4.2);
+\node[anchor=west, font=\tiny, text=gray!45!black] at (56,-4.2)
+  {150 chars: the answer never sits on the boundary};
+
+% ---- footer ------------------------------------------------------------
+\node[anchor=north, align=center, font=\tiny, text=gray!45!black] at (60,-21)
+  {$\text{focus start} = \max(0,\ \text{answer start} - 150)$;\quad
+   1{,}200 chars fits inside the 320-token limit; 2{,}000 does not.};
+\end{tikzpicture}
+\end{adjustbox}
+\caption{Presence vs.\ focus window}
+\label{fig:focus}
+\end{figure}
+\subsection{Stage 1: Plain-Language Summarization}
+\label{sec:summmethod}
+CUAD gives us clauses but no plain-English versions to learn from, so we wrote our own: 41 template sentences, one carefully written one-sentence summary for each category, from the weaker party's side. For \emph{Anti-Assignment}, for example, the template is ``You cannot transfer this contract to someone else without permission.'' Each training clause is paired with its category's template, which gives 11{,}156 training pairs, and FLAN-T5-small is fine-tuned on the prompt ``\texttt{summarize in plain English: <clause>}''.
+
+We test the summarizer in two ways: with ROUGE-L, and by comparing the fine-tuned model with the original model on the same clauses. We need both. With only 41 different target sentences, a model can get a high ROUGE score by recognizing the category and copying its template word for word, without summarizing anything. Chapter~5 shows that this is exactly what happens.
+\subsection{Category-Level Risk Prioritization}
+\label{sec:risk}
+The name of this layer limits what we can claim. The system does not read a clause and judge how dangerous that clause is. It finds which of the 41 categories a contract contains and gives each category a fixed level. These are different tasks, and treating them as one would greatly overstate the system. Our layer says ``\emph{contracts with a non-compete deserve attention}'' and never says ``\emph{this non-compete is unusually harsh}''. Throughout this report we therefore call it category-level risk prioritization.
+
+\subsubsection{Assignment criteria}
+\label{sec:riskcriteria}
+We wrote down the rules we used so that a reader can disagree with a particular level for a particular reason. Each category was scored on five points, from the weaker party's side:
+
+\begin{enumerate}[itemsep=3pt]
+  \item \textbf{Money at risk.} Can this clause cost money, and is there a limit? Having no limit is the strongest single sign of High risk.
+  \item \textbf{Cannot be undone.} If the clause takes effect, can the situation be reversed? Losing ownership of intellectual property or giving a permanent license cannot be undone later; a notice period can.
+  \item \textbf{Limits on future freedom.} Does the clause limit what the party can do \emph{after} the contract, or outside it, such as who it may work for, sell to or hire?
+  \item \textbf{One-sided.} Does the duty fall on only one side? A shared duty of confidentiality is less dangerous than a one-way indemnity with the same wording.
+  \item \textbf{How long it lasts.} Does the duty continue after the contract ends?
+\end{enumerate}
+
+The rule we used is this. A category is High if it has no money limit (point~1), cannot be undone (point~2), or limits freedom after the contract (point~3). It is Low if it only gives information (it records a fact such as a date, a name or the governing law, or gives a benefit) and scores on none of the five points. Everything else is Medium: a real duty, but limited and reversible. This is why \emph{Cap on Liability} is Medium even though it sounds protective (it limits how much you can recover, which may not cover a real loss), and why \emph{Governing Law} is Low even though it matters in a court case (it is a fact about the contract and puts no one-sided duty on the signer).
+
+The eight High categories fall into three groups, each based on a different point: money you could owe without limit (\emph{Uncapped Liability}, \emph{Liquidated Damages}, \emph{Minimum Commitment}, \emph{Most Favored Nation}); something you cannot get back (\emph{IP Ownership Assignment}, \emph{Irrevocable/Perpetual License}); and your freedom to earn later (\emph{Non-Compete}, \emph{Exclusivity}). The levels are our own judgment, made with these rules and the CUAD category descriptions. The full table with reasons is in Appendix~\ref{app:taxonomy}, and Figure~\ref{fig:riskdist} shows how the categories are spread across the levels.
+
+\subsubsection{Who is the ``weaker party''?}
+\label{sec:weaker}
+The risk table depends on this phrase, which can mean different things. The weaker party is not always the same role. In a distribution contract it may be the distributor, in a license the licensee, and in a franchise the franchisee. In a balanced contract between equals there may be no weaker party at all.
+
+We defined it as the party with less power over how the contract was written, which in CUAD is usually the party that did not write it. Where the category alone did not make this clear, we scored from the side of the party who carries the duty: \emph{Non-Compete} from the side that is restricted, \emph{Audit Rights} from the side that is audited, and \emph{License Grant} from the side that receives the license. This rule of thumb has a known weakness. A clause that is High-risk for one side often protects the other, so the same badge is not equally useful to a licensor and a licensee. A system that judged each clause on its own could work out the side from the clause text. Ours cannot, so it assumes the user is the side with less power, and the app states this in the notice shown above every analysis.
+
+\subsubsection{Why a lookup table rather than a learned score}
+The risk table is a simple lookup, which we chose on purpose. It can be checked line by line, its reasoning is written down for each category, and it cannot change silently between versions. The cost is the limit named at the start of this section: it cannot tell a \$10{,}000 liability limit from a \$10{,}000{,}000 one. Section~\ref{sec:riskeval} measures a second cost we did not expect. Because the levels are fixed per category, the system's mistakes depend entirely on which categories it finds well, and the High-risk categories turn out to be among those it finds worst.
+
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.62\textwidth]{risk_distribution.png}
+\caption{Risk-level distribution}
+\label{fig:riskdist}
+\end{figure}
+\subsection{Avoiding Data Leakage}
+\label{sec:leakage}
+With such a small dataset, data leakage is the easiest way to fool ourselves, so we followed one rule throughout: \emph{the answers may be used to create training targets, but never to shape what a model reads or what is chosen when the app runs}. In practice the split is by contract, searches use only the category or its question, the marked answer positions label training windows but never build inputs or choose windows when the app runs, and the ensemble rules have no settings for the test set to tune.
+
+Figure~\ref{fig:focus} shows the one place where the rule seems to be broken. The focus window is placed using the marked answer position, which is part of the answer. In training this is normal supervised learning, because it decides which text becomes a training example. In the real system there is no marked answer, and the span step reads the window chosen by the presence step. The separate span test in Section~\ref{sec:span} is the exception. It builds each test example with the same centered focus window, so it measures extraction when the position of the answer is already known, and its score is a best case that the real system cannot reach. The realistic number comes from the start-to-finish test in Section~\ref{sec:e2e}, which never uses the marked answer position. The retrained span model of Section~\ref{sec:spanv2} does not use centered windows at all: the answer position only labels its training chunks.
+
+\section{Data Collection}
+\label{sec:datasource}
+All experiments use the official CUAD release from The Atticus Project, downloaded from the Hugging Face hub (\texttt{theatticusproject/cuad}). The default \texttt{load\_dataset()} option gives only the 511 original contract PDFs, which cannot be used for training. The marked data sits in two files in the repository, and each has a different job in our system:
+\begin{itemize}[itemsep=2pt]
+  \item \texttt{master\_clauses.csv}: a wide table with 83 columns and one row per contract, which we used to explore the data and build labels;
+  \item \texttt{CUAD\_v1.json}: the SQuAD-format file with the full contract text and the character positions of every answer, which we used to train the span model and to read whole contracts.
+\end{itemize}
+
+\subsection{Data Cleaning}
+Experts prepared the CUAD files, so cleaning meant fixing format problems; the values themselves were sound. We handled four problems:
+\begin{itemize}[itemsep=2pt]
+  \item Empty cells. Clause-text cells that are empty (\texttt{NaN}) are treated as an empty list, which means the category is absent.
+  \item Badly formed lists. Each clause-text cell holds a Python list written as text. A cell that cannot be read as a list is kept as one clause instead of being thrown away, and blank entries are removed from every list.
+  \item Inconsistent column names. One column name contains an extra space, so columns were paired by position instead (Section~\ref{sec:datatransform}).
+  \item Empty answers in the JSON file. Answers that are empty after removing spaces are ignored when building the span-training examples and the answer lists.
+\end{itemize}
+We removed no unusual values. Very long contracts are real and were kept, because handling length is exactly what the method must do.
+
+\subsection{Data Transformation}
+\label{sec:datatransform}
+The CSV is wide: 41 categories $\times$ (a clause-text column plus an answer column), with a file-name column at the front. Turning it into a long table with one row per (contract, category) needed two decisions that were not obvious at first:
+
+We paired columns by position. The column name \texttt{Notice Period To Terminate Renewal- Answer} contains an extra space, which silently breaks any matching of a category column to its answer column by name. Pairing by position (clause text in odd columns, answer in even columns) is immune to such typos.
+
+We decided presence from the clause-text list and ignored the Yes/No answer. Each clause-text cell holds a Python list written as text, either \texttt{'[]'} or \texttt{"['clause', ...]"}, and a category is present when this list is not empty. The rule works the same way for the eight categories (dates, party names) whose answer column holds a value instead of Yes/No, and it also gives us the clause text directly.
+
+This gives $510 \times 41 = 20{,}910$ labeled (contract, category) rows, of which 32.1\% are positive.
+
+Three more steps prepare the data for the models. Every contract is cut into 2{,}000-character windows that move forward 1{,}500 characters at a time, so neighbouring windows overlap by 500 characters, more than a typical clause, and no clause falls between two windows. For the span model, CUAD's character positions are turned into start and end token positions with the tokenizer's offset mapping, inside a 1{,}200-character focus window around each answer so that it fits in 320 tokens. For the baseline, each whole contract becomes a TF--IDF vector of single words and word pairs with sublinear term frequency. Category labels stay simple present/absent values, and no other scaling is needed beyond what TF--IDF does.
+
+\subsection{Data Integration}
+The two CUAD files complement each other. \texttt{master\_clauses.csv} gives one row per contract with the clause lists we used to explore the data and build labels, and \texttt{CUAD\_v1.json} gives the full contract text, the 41 category questions and the character positions of every marked clause. All the modeling uses the JSON file: presence labels, answers and contract texts come from it, matched by contract title and by the category name taken from each question ID. We used the CSV to explore the data and to double-check how often each category appears. The split by contract is computed once over the 510 contract titles and applied the same way to every table made from the data.
+
+\subsection{Data Reduction}
+We reduced the data only to keep training possible on a laptop and to balance the classes, and never threw away information the app needs when it runs:
+\begin{itemize}[itemsep=2pt]
+  \item Vocabulary limit for the baseline: the TF--IDF vocabulary keeps only the 20{,}000 most common single words and word pairs that appear in at least two contracts.
+  \item Fewer negative examples: for window-level training, every positive window is kept, but only two negative windows are taken for each (contract, category) pair, giving 53{,}662 window examples with 39.2\% positives.
+  \item Training on a sample: the presence model was trained on a balanced sample of 24{,}000 windows, the span model on 8{,}000 of 11{,}156 examples (the retrained one on 6{,}000 clauses from the 327 fit contracts) and the summarizer on 4{,}000 of 11{,}156 pairs. Section~\ref{sec:budget} tests whether training the presence model on a sample hurt it.
+\end{itemize}
+
+\subsection{Summary of Preprocessed Data}
+\label{sec:eda}
+Four features of the data shaped the design decisions that followed:
+
+\begin{enumerate}[itemsep=2pt]
+  \item Very uneven categories. How often a category appears ranges from \emph{Document Name} at 100\% and \emph{Parties} at 99.8\% down to \emph{Source Code Escrow} at 2.5\% and \emph{Price Restrictions} at 2.9\%. The median category appears in about 23\% of contracts.
+  \item Almost no examples of the rarest categories. \emph{Source Code Escrow} appears in only 13 contracts in the whole dataset. No model can learn such categories reliably, and their individual scores are mostly noise, which we keep in mind throughout the results chapter.
+  \item Long contracts. The median is 33{,}143 characters (about 5{,}000 words) and the maximum is 338{,}211 characters. The median is about 16$\times$ what a transformer can read at once (about 2{,}000 characters), and the longest is about 170$\times$, which makes length the central modeling problem of the project.
+  \item Short clauses. The median marked clause is 196 characters (90th percentile 587, 99th percentile 1{,}330). A clause easily fits inside one window; the hard part is finding it in a very long document.
+\end{enumerate}
+
+The 510 contracts are the whole dataset. Marking them reportedly cost about \$2M of lawyers' time, so more cannot easily be added. This has three effects: we must start from pre-trained models, over-fitting is the main danger and so all our conclusions rest on test-set numbers, and the train/test split must be made by contract.
+
+\subsubsection{The 80/20 Train/Test Split}
+As our supervisor asked, we split the dataset 80/20 by contract. Each whole contract goes to one side or the other, so no clause from a training contract can appear in the test set. The split uses a fixed random seed (42), and all five models use exactly the same split, so ``test'' always means the same 102 unseen contracts. Table~\ref{tab:split} summarizes the split, and the almost equal share of positives on both sides shows it is balanced. We saved the two sides as \texttt{data/train\_80.csv} and \texttt{data/test\_20.csv} so the split itself can be repeated.
+
+\begin{table}[ht]
+\centering
+\caption{Train/test split}
+\label{tab:split}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{lrrr}
+\toprule
+ & \textbf{Contracts} & \textbf{(Contract, category) rows} & \textbf{Positive rate}\\
+\midrule
+Train (80\%) & 408 & 16{,}728 & 32.0\%\\
+Test (20\%)  & 102 & 4{,}182  & 32.2\%\\
+\midrule
+Total        & 510 & 20{,}910 & 32.1\%\\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+The overall share of positives in Table~\ref{tab:split} is almost the same on both sides (32.0\% vs.\ 32.2\%). One pair of numbers can still hide a badly uneven split, since the two sides can match overall and differ a lot category by category, so Figure~\ref{fig:splitdist} compares them for all 41 categories at once. They match closely (Pearson $r = 0.986$, average difference 3.4 percentage points). The clear exception is \emph{Termination For Convenience}, which appears in 47.1\% of test contracts but only 33.1\% of training contracts, a 14.0-point gap. The other differences are all in the rarest categories, where moving one or two contracts changes the percentage by several points. The split was made once at random and never changed to look better, so we report these gaps as they are. They matter in Chapter~5, because a category that is more common in the test set counts more in the micro-averaged score than its training frequency would suggest.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\textwidth]{split_distribution.png}
+\caption{Per-category split balance}
+\label{fig:splitdist}
+\end{figure}
+
+\section{Implementation of Selected Design}
+We built the chosen design in Python as two Jupyter notebooks, \texttt{train.ipynb} for preparing data and training and \texttt{test.ipynb} for testing on its own, plus some analysis scripts, and then turned it into the Clausify web app. This section describes how each model was trained and how the app works.
+
+All models were trained only on the 408 training contracts (80\%). Training ran on one Apple-Silicon laptop with the MPS (Metal) backend, \texttt{torch} 2.8 and \texttt{transformers} 5.x. The summarizer ran on the CPU for the memory reasons explained in Section~\ref{sec:engineering}. Table~\ref{tab:hyper} lists the settings.
+
+\begin{table}[ht]
+\centering
+\caption{Training configurations}
+\label{tab:hyper}
+\small
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{lccc}
+\toprule
+ & \textbf{Presence (MIL)} & \textbf{Span (QA)} & \textbf{Summarizer}\\
+\midrule
+Backbone            & DistilBERT-base & DistilBERT-base & FLAN-T5-small\\
+Task head           & Sequence classification & QA (start/end) & Seq2seq LM\\
+Training examples   & 24{,}000 (of 53{,}662) & 8{,}000 (of 11{,}156) & 4{,}000 (of 11{,}156)\\
+Max input length    & 256 tokens (512 in the re-run) & 320 tokens & 256 in / 48 out\\
+Epochs              & 2 & 2 & 2\\
+Batch size          & 16 & 16 & 8\\
+Learning rate       & $2\times10^{-5}$ & $3\times10^{-5}$ & $3\times10^{-4}$\\
+Device              & MPS & MPS & CPU\\
+Wall-clock          & $\approx$50--52 min & $\approx$23--26 min & $\approx$8--13 min\\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+
+{\footnotesize\singlespacing \emph{Note.} The re-run of Section~\ref{sec:v2} changes three presence settings: 512 tokens, three epochs with the best one kept on validation, and training windows drawn from 327 of the 408 training contracts. Its training took 191 minutes. The retrained span model of Section~\ref{sec:spanv2} uses 11{,}967 chunks of 1{,}200 characters (6{,}000 clauses), 384 tokens and two epochs, and took 46.2 minutes.\par}
+\end{table}
+\subsection{How We Validated, and Where the Settings Came From}
+\label{sec:valprotocol}
+If any setting in Table~\ref{tab:hyper} had been picked by trying several options and keeping the one that scored best on the 20\% test set, every number in Chapter~5 would be too optimistic and the test set would no longer be unseen. This section gives the source of each setting, including one place where we fell short.
+
+\subsubsection{What was tuned, and what was not}
+In the first setup, nothing in Table~\ref{tab:hyper} was tuned; the re-run of Section~\ref{sec:v2} and the later span and clause models chose their settings on a validation split, as Table~\ref{tab:valsets} shows. In the first setup every setting is a standard default for the model or a value fixed by reasoning before training, and no setting was ever compared with another on the test set. In detail:
+
+\begin{itemize}[itemsep=3pt]
+  \item The learning rates, batch sizes and epochs ($2\times10^{-5}$, $3\times10^{-5}$, $3\times10^{-4}$; 16/16/8; 2 epochs) are the standard fine-tuning defaults for DistilBERT and T5 models. We ran each setting once and did no search. This protects the test set, but it also means we only know these values are common, not that they are good.
+  \item The window of 2{,}000 characters with a step of 1{,}500 comes from a measurement on the training data: the 500-character overlap must be longer than a typical clause (196 characters) so that no clause falls between windows (Section~\ref{sec:mil}). Any window and step that meet this rule would work, and we did not look for the best pair.
+  \item Two negative windows per contract and category balance the classes, keeping about 39\% positives instead of letting almost all windows be negative. This was not tuned either.
+  \item Taking the maximum window score was chosen because it is the multiple-instance rule. We did not try other rules at first; Section~\ref{sec:pooling} does so afterwards.
+  \item The 0.5 threshold is the default boundary for a two-class model. Nobody chose, checked or changed it, and Section~\ref{sec:threshold} later shows that it is a poor choice for the window-based transformer.
+\end{itemize}
+
+The first setup avoided tuning on the test set by not tuning at all. That guarantees the test scores are fair, and it also limits them: the transformer may lose to the baseline partly because nobody looked for better settings for it. Section~\ref{sec:v2} confirms this. With the whole window read and both models tuned on a validation split, the gap closes.
+
+\subsubsection{The validation sets actually used}
+Table~\ref{tab:valsets} shows, for each model, what data was kept aside during training and what it was used for.
+
+\begin{table}[ht]
+\centering
+\caption{Validation arrangements}
+\label{tab:valsets}
+\small
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{>{\raggedright\arraybackslash}p{2.6cm} >{\raggedright\arraybackslash}p{4.5cm} >{\raggedright\arraybackslash}p{6.2cm}}
+\toprule
+\textbf{Model} & \textbf{Validation data} & \textbf{Use}\\
+\midrule
+Presence (MIL) & 5\% of the \emph{training} windows, split off before training & Monitoring only. Clean: no test contract contributes.\\
+\addlinespace
+Span (QA) & None (\texttt{eval\_strategy="no"}) & No validation loss exists for this model.\\
+\addlinespace
+Summarizer (deployed checkpoint) & None & The checkpoint used in every reported result and in Clausify was trained with no evaluation set.\\
+\addlinespace
+Presence, re-run (Section~\ref{sec:v2}) & 81 of the 408 training contracts, held out before training & Chose the epoch, the TF--IDF model's $C$, the pooling rule, the thresholds and the ensemble rule. No test contract was used.\\
+\addlinespace
+Span, retrained (Section~\ref{sec:spanv2}) & The same 81 contracts & Chose the epoch, the decoding and the way the app's quote is chosen.\\
+\addlinespace
+Clause classifier (Section~\ref{sec:clausemode}) & A balanced sample of clauses from the same 81 contracts & Chose between the word model, DistilBERT and their average.\\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+
+{\footnotesize\singlespacing \emph{Note.} ``Monitoring only'' means the loss was printed and plotted but never used to select a checkpoint, stop early, or change a setting: the three first-setup runs used \texttt{save\_strategy="no"} and kept the final-step weights.\par}
+\end{table}
+
+\subsubsection{One thing we got wrong}
+The first exploratory run of the summarizer in the notebook, whose loss curve appeared in earlier drafts of this report, monitored training on 300 clauses taken from the test split. That was the wrong data to monitor with, and we should not have done it.
+
+Two facts limit the damage. That run kept no checkpoints (\texttt{save\_strategy="no"}) and had no early stopping, so the numbers it printed could not have been used to choose a model, and nothing about the model depended on them. The summarizer used for all results was also trained again by \texttt{build\_artifacts.py} with no evaluation set at all, and that model produced every summarizer result in Chapter~5. No reported score comes from a model chosen with test data.
+
+The ``validation'' loss printed by that run (0.096 $\to$ 0.075) was really a loss on test clauses and should be ignored. The October 2026 re-training rebuilt the summarizer exactly as it is used, with no evaluation set, and Figure~\ref{fig:sumloss} now shows that run's training loss, so no test data appears in it. We kept this mistake in the report because it is easy to make: with a small dataset and three models, it is tempting to grab ``the other split'' when a validation set is needed. Writing down, for each model, exactly what was kept aside catches it, and Table~\ref{tab:valsets} now does that.
+\subsection{Optimization Schedule}
+Table~\ref{tab:hyper} gives the highest learning rate of each model, but the schedule that lowers it over time matters as much. All three models use the same optimizer setup: AdamW with a linear decay schedule, no warm-up, and gradient clipping at 1.0. Figure~\ref{fig:lrsched} plots the three schedules. We read the presence and span settings from the \texttt{training\_args.bin} file saved next to each model, so the plot shows what actually ran.
+
+Two of these choices need a reason. Skipping warm-up is usually risky, but these are short fine-tuning runs (1{,}000--3{,}000 steps) that start from pre-trained weights with small learning rates. Warm-up mainly keeps the first updates of a randomly started model stable, which hardly applies here, and the smooth loss curves in Figures~\ref{fig:presloss} and~\ref{fig:sumloss} show no early problems. Gradient clipping at 1.0 stayed on throughout. Clipping is important on the MPS backend, because it stops a single bad batch from causing the kind of breakdown we saw with DeBERTa-v3 (Section~\ref{sec:engineering}).
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\textwidth]{lr_schedule.png}
+\caption{Learning-rate schedules}
+\label{fig:lrsched}
+\end{figure}
+
+A record of the gradient size during training shows directly whether training stayed healthy, instead of leaving us to infer it from the loss. The original August runs did not keep it, because their temporary checkpoint folders were deleted after training. The October 2026 re-training logged it every 100 steps for all three models, and so did the August full-data presence run in Section~\ref{sec:budget}.
+
+These logs show something the loss curves do not. In the October runs the gradient size ranges from 1.45 to 10.60 (median 4.30) for the presence model and from 10.11 to 20.92 (median 12.72) for the span model, so every logged step of both runs is above the clipping limit of 1.0. The August full-data presence run looks the same: across its 63 logged points the gradient size ranges from 0.55 to 11.96 with a median of 4.65, and 98.4\% of the points are above 1.0. The summarizer's gradients are much smaller (0.55 to 1.38, median 1.07, with 70\% of points above 1.0). Nothing broke in any run: there are no NaN values or large spikes, and the losses fall smoothly. For the two DistilBERT models, however, clipping was active on almost every step, so the update size was cut back all the time and the learning rates in Table~\ref{tab:hyper} overstate the real step size. This weakens the warm-up argument above a little, since part of what kept the early updates stable was almost certainly the clipping as well as the small learning rate. Our smooth loss curves are not good evidence that skipping warm-up is safe in general.
+\subsection{Training the Presence Classifier}
+\label{sec:prestrain}
+The TF--IDF + logistic-regression baseline trains in under a minute. On the 20\% test set it reaches micro-F1 0.775, weighted-F1 0.777, macro-F1 0.572 over all 41 categories, and 0.666 over the 34 categories with at least ten test positives. The gap between micro and macro scores comes from the rare categories with very few examples.
+
+The window-level DistilBERT was trained on a balanced sample of 24{,}000 window examples (39.2\% positives) to keep training manageable on a laptop. In the October 2026 re-training it took 49.8 minutes. The training loss fell smoothly from 0.57 after the first 100 steps to 0.26 at the end, and the validation loss went from 0.275 after the first epoch to 0.254 after the second (Figure~\ref{fig:presloss}). The validation loss stayed close to the training loss, so we saw no sign of over-fitting.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.62\textwidth]{presence_loss.png}
+\caption{Presence classifier loss}
+\label{fig:presloss}
+\end{figure}
+\subsection{Training the Span Extractor}
+The question-answering model was trained on 8{,}000 focus-window examples for two epochs. Before training, we turn the labeled token positions back into text for a few examples and check that they match the marked answers. In SQuAD-style systems the character-to-token conversion is easy to get wrong without noticing, and this small check catches that.
+\subsection{Training the Summarizer}
+\label{sec:sumtrain}
+FLAN-T5-small was fine-tuned on 4{,}000 clause--template pairs on the CPU. This took about 8 minutes originally and 12.7 minutes in the October 2026 re-training, which ran while the laptop was busy with other jobs. The training loss dropped quickly, from 1.17 at step 100 to 0.08 by the end of the second epoch (Figure~\ref{fig:sumloss}). There is no validation curve because the model used in the app is trained with no evaluation set (Table~\ref{tab:valsets}). The re-trained model scores ROUGE-L 0.775 against the templates on the 150 test clauses, the same as the original. In hindsight, the fast drop was the first sign of the template copying we analyze in Chapter~5: with only 41 different targets, the task is easy to learn.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.62\textwidth]{summarizer_loss.png}
+\caption{Summarizer loss}
+\label{fig:sumloss}
+\end{figure}
+\subsection{Engineering Notes: Training on Consumer Hardware}
+\label{sec:engineering}
+A few practical lessons may save time for anyone repeating this work on Apple-Silicon computers:
+\begin{itemize}[itemsep=2pt]
+  \item DeBERTa-v3 is unstable on MPS. Our first-choice model produced NaN (broken) gradients on the MPS backend and was far too slow on the CPU (about 89 seconds per step). We switched to DistilBERT; the method stays the same, and on a CUDA machine the model name can simply be changed back.
+  \item MPS memory is not freed inside one program. After two transformer trainings in the same session, the summarizer ran out of MPS memory even after we deleted objects and cleared the cache. What actually works is restarting the kernel or training the (small) summarizer on the CPU, which is what we did.
+  \item Library changes. \texttt{transformers} 5.x renamed \texttt{Trainer(tokenizer=\dots)} to \texttt{processing\_class=\dots}. We also turned off mixed precision (\texttt{fp16=bf16=False}) and converted the loss logits to fp32 to avoid data-type problems on MPS.
+  \item Repeatability. Everything needed (the split in \texttt{artifacts/split.json}, the baseline in \texttt{artifacts/baseline.pkl}, and the five trained models: presence, TF--IDF, span, summarizer and clause classifier) is saved to disk, and a separate test notebook recreates every number in Chapter~5 from those files alone.
+\end{itemize}
+\subsection{Measured: What Sparse Attention Would Have Cost}
+\label{sec:lfbench}
+Section~\ref{sec:lit_long} argued against sparse attention partly because of cost, and a cost argument is weak until the cost is measured. The laptop used for this project is exactly the machine in question, so we measured it.
+
+We built Longformer-base at its published size (12 layers, 768 hidden units, 4{,}098 position embeddings, attention window 512, 148.7M parameters). We timed one forward pass at 4{,}096 tokens and one full training step (forward pass, backward pass and AdamW update), and compared them with the DistilBERT setup this project used. The weights are random, which does not matter here, because time and memory depend on the size of the tensors and not on their values. Each setup ran in its own program, so the peak memory belongs to that setup alone. The machine is an Apple M4 with 16\,GB of shared memory, which the operating system also uses. Table~\ref{tab:lfbench} shows the results.
+
+\begin{table}[ht]
+\centering
+\caption{Longformer vs.\ DistilBERT cost}
+\label{tab:lfbench}
+\small
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{llccc}
+\toprule
+\textbf{Model} & \textbf{Operation} & \textbf{Batch} & \textbf{Time} & \textbf{Peak memory}\\
+\midrule
+Longformer-base (148.7M) & forward, 4{,}096 tok & 1 & 3.69\,s & 2.18\,GB\\
+DistilBERT (67.0M)       & forward, 256 tok     & 16 & 0.19\,s & 1.15\,GB\\
+\addlinespace
+Longformer-base & training step, 4{,}096 tok & 1 & 258\,s & 14.71\,GB\\
+Longformer-base & training step, 4{,}096 tok & 2 & 2{,}170\,s & 20.75\,GB\\
+DistilBERT      & training step, 256 tok     & 16 & 3.17\,s & 4.47\,GB\\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+
+{\footnotesize\singlespacing \emph{Note.} Measured on the Apple M4 (16\,GB unified memory) that trained every model reported in this project.\par}
+\end{table}
+
+This measurement corrected us. Before measuring, we believed that fine-tuning a Longformer at 4{,}096 tokens was not possible on one laptop (Section~\ref{sec:lit_long}). At batch size 1 it fits, using 14.71\,GB on a 16\,GB machine. That leaves less than 1.5\,GB for the operating system, but the model, its gradients and its optimizer state all fit in memory and the step finishes.
+
+One step further, the memory claim holds. At batch size 2 the memory needed rises to 20.75\,GB, more than the machine has, and the timing shows it: the step takes 2{,}170 seconds instead of the roughly 516 that doubling the batch should take. Being 8.4 times slower for twice the work means the computer is swapping memory to disk. The accurate claim is that Longformer fits only at batch size 1, and any batch size a real training run would use does not fit.
+
+Time is the real limit. At 258 seconds per step and batch size 1, repeating our two-epoch presence training (22{,}800 training windows, 45{,}600 examples seen in total) would take about 136 days of non-stop computing. The DistilBERT run it would replace took about 50 minutes. Short tests add start-up time (our own DistilBERT step takes 3.17\,s here but about 1.0\,s during the real run), so these numbers may be about three times too high. Even then, a third of 136 days is still 45 days, and the project had weeks.
+
+Measurement also confirms the cost when the app runs. Scanning one typical contract (33{,}143 characters) for all 41 categories takes 22 windows $\times$ 41 $\times$ 11.7\,ms $\approx$ 10.6 seconds with our DistilBERT, against 3 windows $\times$ 41 $\times$ 3.69\,s $\approx$ 454 seconds (seven and a half minutes) with Longformer. Clausify is meant to answer in about a minute on a CPU, so a Longformer scan of seven and a half minutes per contract rules it out for the app, whatever a large training computer could do.
+
+None of this shows that a Longformer would have scored worse. It shows only that we could not have found out on this hardware, a much narrower claim than the one we started with. Settling the modeling question needs a CUDA machine, and we list it as future work.
+\subsection{End-to-End Data Flow}
+Figure~\ref{fig:pipeline} names the steps, and Figure~\ref{fig:dataflow} adds what passes between them. The sizes shown are for one contract of typical length.
+
+\begin{figure}[ht]
+\centering
+\begin{adjustbox}{max width=\textwidth}
+\begin{tikzpicture}[x=1mm, y=1mm, font=\scriptsize,
+  st/.style={draw=blue!55, fill=blue!8, rounded corners=2pt, text width=40mm,
+             align=center, minimum height=8mm, inner sep=1.5pt},
+  ad/.style={st, draw=orange!75, fill=orange!15},
+  arr/.style={-{Stealth[length=2mm]}, gray!60!black, line width=0.6pt},
+  op/.style={font=\tiny, text=gray!45!black, anchor=west},
+  dat/.style={font=\tiny, anchor=west, text width=76mm}
+]
+\node[st] (s1) at (24,0)   {Contract text};
+\node[st] (s2) at (24,-16) {Sliding windows};
+\node[st] (s3) at (24,-32) {Presence scoring};
+\node[st] (s4) at (24,-48) {Presence vector};
+\node[st] (s5) at (24,-64) {Extracted spans};
+\node[ad] (s6) at (24,-80) {Risk $+$ plain English};
+\node[ad] (s7) at (24,-96) {Risk-prioritized report};
+
+\foreach \a/\b in {s1/s2, s2/s3, s3/s4, s4/s5, s5/s6, s6/s7} \draw[arr] (\a) -- (\b);
+
+\node[op] at (26,-8)  {windowing: 2{,}000 chars, stride 1{,}500; first 30, plus 5 per type picked by TF--IDF};
+\node[op] at (26,-24) {$\times$ 41 category questions; DistilBERT, 512 tokens};
+\node[op] at (26,-40) {$\max$ over the windows read, then each type's recall-first threshold};
+\node[op] at (26,-56) {retrained DistilBERT-QA in the best window, flagged categories only};
+\node[op] at (26,-72) {taxonomy lookup $+$ FLAN-T5-small};
+\node[op] at (26,-88) {sort by risk level, then score; under 50\% chance marked possible};
+
+\node[dat] at (50,0)   {\texttt{str}: 33{,}143 characters (median)};
+\node[dat] at (50,-16) {\texttt{list[str]}: $n = 22$ windows (median; mean 35, max 226); at most 35 read per type};
+\node[dat] at (50,-32) {\texttt{float[n,\,41]} window scores $+$ \texttt{float[41]} document scores};
+\node[dat] at (50,-48) {\texttt{bool[41]}: about 19 categories flagged present (mean over the test contracts)};
+\node[dat] at (50,-64) {\texttt{list[(category,\,paragraph,\,answer)]}: the paragraph around the answer is quoted};
+\node[dat] at (50,-80) {\texttt{list[(category,\,High\,$|$\,Med\,$|$\,Low,\,reason,\,sentence)]}};
+\node[dat] at (50,-96) {grouped by risk level, rendered in \emph{Clausify} (Section~\ref{sec:clausify})};
+
+\draw[gray!45, dashed, line width=0.4pt] (47,4) -- (47,-100);
+\node[anchor=south, font=\tiny, text=gray!45!black] at (24,5) {\textbf{stage}};
+\node[anchor=south west, font=\tiny, text=gray!45!black] at (50,5) {\textbf{data leaving that stage}};
+\end{tikzpicture}
+\end{adjustbox}
+\caption{Pipeline data flow in the app}
+\label{fig:dataflow}
+\end{figure}
+\subsection{The Clausify Application}
+\label{sec:clausify}
+\subsubsection{Purpose and Design}
+The final result of the project is \emph{Clausify}, a Streamlit web app that runs all of the project's trained models on any contract the user gives it (the re-run DistilBERT presence model and its TF--IDF partner from Section~\ref{sec:v2}, the span model, the FLAN-T5 summarizer, and the clause classifier for clause mode) and shows the results as a report sorted by risk. It is the system of Figure~\ref{fig:pipeline} with an interface. The design goal is that a non-lawyer should see the ``watch out before signing'' items first. Clauses found are grouped \textcolor{riskhigh}{\textbf{High}} $\rightarrow$ \textcolor{riskmed}{\textbf{Medium}} $\rightarrow$ \textcolor{risklow}{\textbf{Low}} and sorted by model score within each group.
+\subsubsection{User Workflow}
+\begin{enumerate}[itemsep=2pt]
+  \item Add a contract. The user pastes the text or uploads a \texttt{.pdf}, \texttt{.docx} or \texttt{.txt} file, and the text is read on the user's own computer (Figure~\ref{fig:apphome}). The user picks \emph{Whole contract}, \emph{Separate clauses} (described below) or \emph{Auto}. A settings panel chooses the detection rule and turns the plain-English lines on or off. The rules are the three re-run setups of Section~\ref{sec:v2}, with the thresholds chosen there: the recall-first transformer (the default), the recall-first ensemble and the balanced AND-ensemble.
+  \item Analyze. One click runs all the models, and a progress bar follows the scan of the 41 categories and then the summarizer.
+  \item Read the report. A summary bar counts the clauses found at each risk level (Figure~\ref{fig:appresults}), and each clause appears below it as a card. On the made-up test contract the bar shows 5 High, 13 Medium and 9 Low risk clauses, so 27 of the 41 categories are found (re-run model, recall-first default).
+\end{enumerate}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.95\textwidth]{app_home.png}
+\caption{Clausify input screen}
+\label{fig:apphome}
+\end{figure}
+
+Each clause card shows the category name with a colored risk badge, the one-line reason why that category is risky (from the risk table in Appendix~\ref{app:taxonomy}), the summarizer's plain-English sentence with a warning when it belongs to another category, a bar showing the calibrated chance that the clause type is present, with the DistilBERT score and the threshold set for that clause type, and the clause quoted from the user's own contract with the span model's answer highlighted (Figure~\ref{fig:appcards}). A card whose calibrated chance is below 50\% is labeled \emph{Possible --- check} and listed after the other cards of its risk level (Section~\ref{sec:demolimits}). Below the cards the app adds three more views:
+\begin{itemize}[itemsep=2pt]
+  \item A highlighted contract: the full text, with every clause found marked in its risk color and labeled with its category. Each card links to its place in the text.
+  \item A missing-protection checklist: protective clauses the models did not find, namely a limit on liability, termination for convenience, governing law, an expiry date, a warranty period, insurance and, when the contract renews itself, a notice period to stop the renewal. Each comes with a sentence on why its absence matters, and the view notes that ``not detected'' can also mean the model missed it.
+  \item A downloadable report: a PDF (summary, every clause with its reason, plain-English line, scores and quoted text, and the checklist) and a CSV file with the same rows.
+\end{itemize}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.95\textwidth]{app_highlight.png}
+\caption{Highlighted contract and checklist}
+\label{fig:apphighlight}
+\end{figure}
+
+Figure~\ref{fig:apphighlight} shows the highlighted view and the checklist on the made-up test contract. The renewal paragraph is labeled \emph{Renewal Term}; the first setup's model labeled it \emph{Minimum Commitment}, which was wrong. The checklist reports the warranty period as not detected although Section~10 of the contract sets one (90 days), and Figure~\ref{fig:appresults} shows a false alarm: the liability clause, which caps liability, is reported as \emph{Uncapped Liability}. The summarizer's warning on that card points to the right category. We kept both mistakes in the figures instead of choosing cleaner examples.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.95\textwidth]{app_results.png}
+\caption{Clausify results view}
+\label{fig:appresults}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.95\textwidth]{app_cards.png}
+\caption{High-risk clause cards}
+\label{fig:appcards}
+\end{figure}
+\subsubsection{How the Models Run Inside the App}
+The app follows the same steps that were used in testing:
+\begin{enumerate}[itemsep=2pt]
+  \item Windows. The contract is cut into 2{,}000-character windows that move forward 1{,}500 characters at a time, as in training. Every clause type is checked in the first 30 windows. In a longer contract, the re-run TF--IDF model, applied to each later window on its own, picks the 5 windows most likely to contain each clause type, and those are checked too. This keeps long contracts fast while finding most of their clauses (Section~\ref{sec:demolimits}).
+  \item Model 1, presence. For each of the 41 categories, the exact CUAD question the model was trained on is paired with each of those windows and scored by the re-run DistilBERT, which reads the whole window (512 tokens). The score for the whole contract is the highest window score. A category is reported as present when its score reaches the threshold chosen for it on the validation split, and the best window is remembered.
+  \item Finding the clause. Inside that best window, the retrained span model (Section~\ref{sec:spanv2}) reads the window in 1{,}200-character chunks, as in its training, and returns its answer. The card quotes the whole paragraph that contains the answer and highlights the answer inside it. Earlier versions of the app could not trust the first span model this far: on test inputs it returned the same sentence for almost every category, because it preferred text near the position where answers sat during its training (Section~\ref{sec:e2e}). They quoted the paragraph the presence model scored highest instead, which Section~\ref{sec:spanv2} compares with the new method on the test set.
+  \item Optional ensembles. With these settings the re-run TF--IDF model also scores the whole contract. The recall-first ensemble reports a category when the average of the two scores reaches that category's threshold, and the balanced ensemble when both scores reach their own thresholds, exactly as tested in Section~\ref{sec:v2}. The thresholds are stored in \texttt{decision\_v2.json}, which the training code writes and the app reads, so the app cannot drift from the tested setup.
+  \item Risk layer. The category found is looked up in the fixed risk table (8 High, 22 Medium, 11 Low) for its level and reason.
+  \item Summarizer. FLAN-T5-small receives each quoted clause with the same prompt and settings as in testing and returns one plain-English sentence.
+\end{enumerate}
+
+All the models run on the CPU, so the app works on any computer, and a typical contract takes about a minute once the models are loaded (Table~\ref{tab:appbench}). The app loads the trained models saved by the training code (\texttt{presence\_v2}, \texttt{span\_v2}, \texttt{summarizer} and the re-run TF--IDF model, with the first setup's models as a fallback). When they are not on the computer, as on a cloud server, it downloads the same files once from a public Hugging Face model repository.
+\subsubsection{Implementation Notes}
+The app is a single-page Streamlit program (\texttt{app.py}) built on two small modules. \texttt{model\_utils.py} loads the models and handles windows, scoring, clause finding, the summarizer and the risk table, and \texttt{features.py} reads uploaded files, builds the highlighted view and creates the reports. Two test contracts come with the app: a real CUAD contract, and a made-up ``Master Software License and Distribution Agreement'' that we wrote to cover many of the 41 categories. On the made-up contract the app finds clauses at all three risk levels and puts the four High-risk clause types that the contract's section headings name (\emph{Exclusivity}, \emph{IP Ownership Assignment}, \emph{Non-Compete} and \emph{Liquidated Damages}) at the top of the report, which are the before-you-sign warnings the design aims for. It also reports one High-risk type the contract does not contain (Section~\ref{sec:v2}).
+\subsubsection{Clause-by-Clause Mode}
+\label{sec:clausemode}
+Users often paste a few clauses instead of a whole contract and expect one card per clause. Whole-contract mode does not work that way. For each of the 41 categories it asks whether the category appears anywhere in the window, so six related clauses pasted together gave fourteen categories, eight of them wrong. The app therefore has a second mode, chosen automatically for a short list of paragraphs or chosen by the user, in which each paragraph is one clause and gets exactly one category and one risk level. When most paragraphs are numbered (``1.'', ``4.2'', ``(a)'', ``Section 5''), only the numbered ones are treated as clauses. The title, opening paragraph and signature lines are listed separately as skipped, so a contract with 18 numbered clauses gives exactly 18 cards, numbered as in the contract.
+
+In this mode, if a clause heading names a category (``\textsc{2. Exclusivity.}''), the heading decides the category directly, and headings that do not clearly name one category are ignored. Otherwise a model decides. The first version reused the presence model: it scored the clause against all 41 category questions and adjusted each score by how that category scores on real CUAD clauses of other categories (fitted on 1{,}586 training clauses), because the raw scores cannot be compared across categories; \emph{Parties}, for example, scores about 0.98 on almost any clause that names the two sides. On 721 clauses from the test split, that gave the right category out of 41 for 44.9\% of clauses (5.1\% with the raw scores), the right one in the top three 67.1\% of the time and the right risk level 69.9\% of the time, and it left 25.8\% of clauses unrecognized. The presence model was trained to scan 2{,}000-character windows, not to label single clauses, so we trained a model for the task itself.
+
+The clause classifier learns from the 7{,}464 annotated clauses of the 327 contracts the re-run presence model was trained on, each labeled with its category, plus a 42nd class, \emph{none}, made of 2{,}000 lines of the same contracts that overlap no annotated clause (definitions, notices, signature blocks). We compared a TF--IDF model with logistic regression, DistilBERT fine-tuned for the 42 classes (three epochs, 44.7 minutes) and the average of the two, on a balanced sample of the 81 validation contracts (20 clauses per category, as in the test). The word model was best on validation (69.9\%, against 59.3\% for DistilBERT and 62.9\% for the average), so the app uses it. On the same 721 test clauses it gives the right category 72.1\% of the time, against 44.9\% before, the right one in its top three 90.3\% of the time, and the right risk level 83.1\% of the time. Counting any category the same text is also annotated with, it is right 82.5\% of the time. It calls only 1.2\% of real clauses \emph{none}, against the 25.8\% the first version left unrecognized, but the \emph{none} class is weak in the other direction: of 200 test lines that belong to no clause, it recognizes 49\%, so about half of such paragraphs still get a category. A paragraph the classifier reads as \emph{none} is shown as unrecognized. The app shows these numbers under every clause-mode result.
+
+A word model beating DistilBERT here matches the first presence comparison, before the transformer read whole windows (Section~\ref{sec:bootstrap}): clause categories are marked by distinctive legal wording. Our DistilBERT was still improving after three epochs (validation accuracy 46.1\%, 54.7\% and 59.3\%), so a longer run might close the gap. On the nine-clause test text of the app, the classifier agrees with the heading on 8 of 9 clauses, and with the headings removed it still gets 8 of 9 categories and risk levels right. Its one miss is the confusion the categories invite: an \emph{Uncapped Liability} clause read as \emph{Cap on Liability}, which turns a High-risk card into a Medium-risk one. Headings remain the most reliable signal, and cards decided by the model alone should be checked against the clause text.
+
+\subsubsection{Measured Latency}
+\label{sec:appbench}
+Chapter~2 explained that we chose a small model partly because the app must respond quickly. Section~\ref{sec:lfbench} measured what the alternative would have cost. Here we measure how fast our app is, running the app's own code on test contracts of different lengths.
+
+\begin{table}[ht]
+\centering
+\caption{Application latency}
+\label{tab:appbench}
+\small
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{lrrrrr}
+\toprule
+ & & & \multicolumn{2}{c}{\textbf{Time}} & \\
+\cmidrule(lr){4-5}
+\textbf{Contract} & \textbf{Characters} & \textbf{Windows per type} & \textbf{First setup} & \textbf{Current app} & \textbf{Peak RSS}\\
+\midrule
+Shortest in test set & 1{,}283 & 1 & 2.7\,s & 2.0\,s & 1.16\,GB\\
+25th percentile & 18{,}104 & 12 & 15.0\,s & 36.1\,s & 1.73\,GB\\
+Median & 35{,}136 & 24 & 30.1\,s & 74.7\,s & 1.91\,GB\\
+75th percentile & 65{,}547 & 35 & 32.7\,s & 115.4\,s & 2.07\,GB\\
+Longest in test set & 289{,}615 & 35 & 34.8\,s & 116.2\,s & 2.07\,GB\\
+\midrule
+\multicolumn{6}{l}{\emph{Current app: median 74.7\,s \quad mean 68.9\,s \quad worst case 116.2\,s}}\\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+
+{\footnotesize\singlespacing \emph{Note.} Measured in October 2026 through the application's own \texttt{analyze()} entry point with its default detection rule, on the same machine with nothing else running. First setup: the 256-token presence model. Current app: the re-run 512-token presence model of Section~\ref{sec:v2}, which checks every clause type in the first 30 windows and in 5 later windows picked by the TF--IDF model (Section~\ref{sec:demolimits}), and the retrained span model of Section~\ref{sec:spanv2}; the first setup read at most 30 windows. The two longest contracts have 44 and 193 windows. Repeated runs of the same contracts on this laptop vary by up to about a quarter (another run of the current app gave a median of 58.0\,s and a worst case of 143.1\,s). CPU only, Apple M4, models already loaded (loading adds 0.5\,s). Peak RSS is the memory of the whole Python process for the current app.\par}
+\end{table}
+
+A typical contract takes about a minute (74.7 seconds for the median test contract in this run), roughly twice the first setup's 30.1 seconds, because the presence model now reads twice as much text in every window. The 5 extra windows per clause type add about 15\% on a long contract: in alternating runs with and without them, the 75th-percentile contract took 111.8 against 95.5 seconds on average, and the longest 119.0 against 104.1 seconds. It is the price of the accuracy gain in Section~\ref{sec:v2}. Our first guess of 5--15 seconds came from watching the demo on short inputs.
+
+Two design effects show in the numbers. Time grows in proportion to the number of windows, because most of the work is 41 categories $\times$ windows passes through DistilBERT, with each (category, window) pair scored once and nothing reused between categories. The window limit keeps the worst case short: every clause type is checked in at most 35 windows, so the 75th-percentile contract and the longest one take about the same time although one is four times longer. Without the limit the longest test contract would take more than ten minutes. The limit has a cost in recall that no other Chapter~5 number shows, because those tests read the full document. Reading only the first 30 windows lost about one High-risk clause in seven, and the 5 windows the TF--IDF model picks win most of it back (Section~\ref{sec:demolimits}).
+

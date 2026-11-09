@@ -1,0 +1,174 @@
+\chapter{Reproducibility Checklist}
+\label{app:repro}
+
+This appendix describes the setup that produced every number in this report, so that a reader with the repository and this appendix can produce any table again without asking us.
+
+\section*{Environment}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{>{\raggedright\arraybackslash}p{4.5cm} >{\raggedright\arraybackslash}p{9cm}}
+\toprule
+Python & 3.13.5\\
+Operating system & macOS 26.5.2 (August 2026 runs) and 26.6.2 (October 2026 runs), arm64\\
+Hardware & Apple M4, 10 cores (4 performance / 6 efficiency), 16\,GB unified memory\\
+Accelerator & Metal Performance Shaders (MPS); no CUDA at any point\\
+\midrule
+\texttt{torch} & 2.8.0\\
+\texttt{transformers} & 5.12.1\\
+\texttt{datasets} & 5.0.0\\
+\texttt{scikit-learn} & 1.6.1\\
+\texttt{numpy} & 2.1.3\\
+\texttt{pandas} & 2.2.3\\
+\texttt{rouge\_score} & installed (ROUGE-L is also implemented inline; see below)\\
+\texttt{matplotlib} & figures only\\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+
+\section*{Data}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{>{\raggedright\arraybackslash}p{4.5cm} >{\raggedright\arraybackslash}p{9cm}}
+\toprule
+Dataset & CUAD v1, Hugging Face \texttt{theatticusproject/cuad}\\
+Files used & \texttt{CUAD\_v1/CUAD\_v1.json} (contexts, character offsets); \texttt{CUAD\_v1/master\_clauses.csv} (exploratory analysis only)\\
+Contracts & 510; 41 categories; 20{,}910 (contract, category) rows\\
+Note & The default \texttt{load\_dataset()} option gives only the original PDFs, which cannot be used for training (Section~\ref{sec:datasource}).\\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+
+\section*{Seeds and splits}
+\begin{itemize}[itemsep=2pt]
+  \item Seed 42 for the split, all three trainings and every bootstrap.
+  \item The split is \emph{made once} with \texttt{numpy.random.default\_rng(42).permutation}, saved to \texttt{artifacts/split.json}, and read from disk by every later script, so no script makes its own split.
+  \item Extra presence-model seeds 43 and 44 (Section~\ref{sec:seeds}); split seeds 0--19 for Section~\ref{sec:splitvar}.
+  \item Bootstrap: 10{,}000 resamples, \texttt{default\_rng(42)}, resampling whole contracts.
+  \item Re-run validation split (Section~\ref{sec:v2}): 81 of the 408 training contracts, drawn with \texttt{default\_rng(42).permutation} over the training titles and saved as \texttt{retrain/v2\_fullwindow/runs/<tag>/val\_split.json}.
+\end{itemize}
+
+\section*{Artifact fingerprints}
+The first 16 characters of the SHA-256 hash of each file (October 2026 models, and the re-run presence model, TF--IDF model and retrained span model the app uses), so a reader can check that they have the same files:
+
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{ll}
+\toprule
+\texttt{CUAD\_v1.json} & \texttt{ed0b77d85bdf4014}\\
+\texttt{artifacts/split.json} & \texttt{177e2ef48dfab9cd}\\
+\texttt{artifacts/baseline.pkl} & \texttt{903e527500409af2}\\
+\texttt{outputs/presence\_mil/final/model.safetensors} & \texttt{a5482a0302ae2c7c}\\
+\texttt{outputs/span/final/model.safetensors} & \texttt{380a233a3c03e052}\\
+\texttt{outputs/summarizer/final/model.safetensors} & \texttt{9fcb6bdf777d033c}\\
+\texttt{outputs/presence\_v2/final/model.safetensors} & \texttt{e5f84bd42eb8bf27}\\
+\texttt{artifacts/baseline\_v2.pkl} & \texttt{3fc0d273065d0a11}\\
+\texttt{outputs/span\_v2/final/model.safetensors} & \texttt{20ac289e746e84fb}\\
+\texttt{outputs/clause\_v2/tfidf.pkl} & \texttt{9d288ab0c8231f95}\\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+
+\section*{Commands, and which table each regenerates}
+The four \texttt{stage} scripts are run from the \texttt{notebooks/} folder, exactly as listed in \texttt{retrain/README.md}; every other command works from the project folder. Rows marked ``August'' are the August 2026 control runs.
+
+{\footnotesize
+\begin{longtable}{>{\raggedright\arraybackslash}p{8.4cm} >{\raggedright\arraybackslash}p{5.6cm}}
+\toprule
+\textbf{Command} & \textbf{Regenerates}\\
+\midrule
+\endhead
+\texttt{python3 ../retrain/smoke\_test.py} & Checks that the four saved models load and run\\
+\texttt{python3 ../retrain/stage2a\_presence\_train.py} & Split, TF--IDF baseline and presence transformer ($\approx$50 min)\\
+\texttt{python3 ../retrain/stage2a\_presence\_test.py} & Tables~\ref{tab:ensemble}--\ref{tab:zerof1}, Figures~\ref{fig:ensemble}--\ref{fig:percat} ($\approx$50 min)\\
+\texttt{python3 ../retrain/stage2b\_span\_train.py}, then \texttt{\_test.py} & Span model and its scores in Table~\ref{tab:span} ($\approx$25 + 2 min)\\
+\texttt{python3 ../retrain/stage1\_summarizer\_train.py}, then \texttt{\_test.py} & Summarizer and its template score in Table~\ref{tab:sumeval} ($\approx$13 + 3 min)\\
+\texttt{python3 retrain/analysis\_oct2026/\allowbreak make\_probs.py} & Saves the presence scores in the form the analysis scripts below read (run once after the presence test)\\
+\texttt{python3 retrain/analysis\_oct2026/\allowbreak span\_ci.py} & Intervals in Table~\ref{tab:span}\\
+\texttt{python3 retrain/analysis\_oct2026/\allowbreak summ\_pilot.py} & Tables~\ref{tab:sumeval} and~\ref{tab:sumqual}\\
+\texttt{python3 retrain/analysis\_oct2026/\allowbreak e2e.py} & Tables~\ref{tab:e2e} and~\ref{tab:e2eattr}\\
+\texttt{python3 retrain/analysis\_oct2026/\allowbreak risk\_threshold\_calib.py} & Table~\ref{tab:riskeval}, Figure~\ref{fig:threshcal}\\
+\texttt{python3 retrain/analysis\_oct2026/\allowbreak error\_examples.py} & Table~\ref{tab:errors}\\
+\texttt{python3 retrain/analysis\_oct2026/\allowbreak rare\_tail.py} & Table~\ref{tab:raretail}\\
+\texttt{python3 retrain/analysis\_oct2026/\allowbreak pooling\_ablation.py} & Table~\ref{tab:pooling} ($\approx$55 min)\\
+\texttt{python3 retrain/analysis\_oct2026/\allowbreak bootstrap\_ci.py} & Table~\ref{tab:bootstrap}\\
+\texttt{python3 analysis/presence\_run.py -{}-tag s43 -{}-seed 43} & Seeds 43 and 44 in Table~\ref{tab:seeds} (August; repeat for 44)\\
+\texttt{python3 analysis/presence\_run.py -{}-tag full53k -{}-max-train 0} & Table~\ref{tab:budget} (August; $\approx$140 min)\\
+\texttt{python3 analysis/compare\_runs.py} & Differences in Table~\ref{tab:budget} (August)\\
+\texttt{python3 analysis/split\_variance.py} & Table~\ref{tab:splitvar}\\
+\texttt{python3 analysis/lf\_one.py longformer 4096 1 train} & Table~\ref{tab:lfbench} (one row per run)\\
+\texttt{caffeinate -i python3 -u ../retrain/v2\_fullwindow/\allowbreak presence\_v2.py -{}-max-len 512 -{}-tag L512} & Re-run presence model and its window scores for Section~\ref{sec:v2} ($\approx$6.5\,h)\\
+\texttt{caffeinate -i python3 -u ../retrain/v2\_fullwindow/\allowbreak presence\_v2.py -{}-max-len 256 -{}-tag L256} & 256-token control run ($\approx$3.2\,h)\\
+\texttt{python3 ../retrain/v2\_fullwindow/\allowbreak tune\_and\_test.py -{}-tag L512} (then \texttt{L256}) & Tables~\ref{tab:v2} and~\ref{tab:v2ctrl}; the app's thresholds (\texttt{decision.json}) and TF--IDF model\\
+\texttt{python3 retrain/v2\_fullwindow/\allowbreak compare\_window.py} & Paired 512 vs.\ 256 differences in Section~\ref{sec:v2}\\
+\texttt{python3 retrain/v2\_fullwindow/\allowbreak measure\_truncation.py} & How much of each window the 256-token model reads (Section~\ref{sec:v2})\\
+\texttt{caffeinate -i python3 -u retrain/span\_v2/\allowbreak span\_chunks.py} & Retrained span model of Section~\ref{sec:spanv2} ($\approx$46\,min)\\
+\texttt{python3 retrain/span\_v2/\allowbreak evaluate\_span.py} & Validation choices and Table~\ref{tab:spanv2}, including the app's quote; the settings in the app's \texttt{span\_v2.json} ($\approx$20\,min)\\
+\texttt{python3 retrain/v2\_fullwindow/\allowbreak card\_chance.py} & Cards under 50\% and 20\% chance (Section~\ref{sec:demolimits})\\
+\texttt{python3 retrain/v2\_fullwindow/\allowbreak window\_cap.py} & Reading rules for long contracts, number of extra windows chosen on validation (Table~\ref{tab:windowcap})\\
+\texttt{python3 retrain/v2\_fullwindow/\allowbreak app\_presence\_test.py} & The app's own detection on the test contracts ($\approx$85\,min on MPS)\\
+\texttt{python3 retrain/clause\_v2/\allowbreak clause\_classifier.py tfidf} (then \texttt{bert}, then \texttt{test}) & Clause-mode classifier, chosen on validation (Section~\ref{sec:clausemode})\\
+\texttt{python3 retrain/plain\_v2/\allowbreak plain\_english.py} (then \texttt{plain\_fewshot.py}) & Larger FLAN-T5 models for the plain-English line (Section~\ref{sec:summ})\\
+\texttt{python3 retrain/analysis\_oct2026/\allowbreak app\_bench.py} & Table~\ref{tab:appbench}\\
+\texttt{python3 retrain/verify\_report.py} & Checks the reported numbers in this report against the result files; prints \texttt{0 mismatched} when they agree\\
+\texttt{tectonic project\_report/main.tex} & This report\\
+\bottomrule
+\end{longtable}
+}
+
+\section*{Known limits on exact repeatability}
+\begin{itemize}[itemsep=2pt]
+  \item Training on MPS does not give exactly the same weights every time, even on the same machine with the same library versions. Re-training every model in October 2026 with the same code and seed gave the August scores to within about 0.003 (transformer micro-F1 0.6943 $\rightarrow$ 0.6924; span token-F1 0.763 $\rightarrow$ 0.764), but not exactly.
+  \item ROUGE-L in \texttt{summ\_pilot.py} is computed by our own longest-common-subsequence code (the same as in \texttt{test.ipynb}), not by the \texttt{rouge\_score} package, so scores from the two should not be mixed.
+  \item The retrieval limit in Section~\ref{sec:ceiling} was measured over all 510 contracts, test contracts included (Section~\ref{sec:threats}).
+\end{itemize}
+
+\chapter{Repository and Artifact Layout}
+\label{app:repo}
+
+{\scriptsize
+\begin{verbatim}
+clausify-p3/  (github.com/afnanmz168/clausify-p3)   -- research deliverable
+|- project_report/                    -- this report (LaTeX, CSE400 template)
+|  |- main.tex / main.pdf
+|  |- chapters/ core/ appendix/ bibliography/ images/
+|- paper/                             -- IEEE-format paper (LaTeX + figures)
+|- IEEE_Paper_Clausify.pdf
+|- data/
+|  |- train_80.csv                    -- 80% split (16,728 rows, 408 contracts)
+|  |- test_20.csv                     -- 20% split (4,182 rows, 102 contracts)
+|- notebooks/
+|  |- train.ipynb                     -- training notebook (EDA -> 3 models)
+|  |- test.ipynb                      -- STANDALONE evaluation notebook
+|  |- build_artifacts.py              -- retrains & saves all artifacts
+|  |- artifacts/                      -- split.json, baseline.pkl, baseline_v2.pkl
+|  |- outputs/                        -- presence (and presence_v2), span (and span_v2), summarizer
+|- retrain/                           -- October 2026 re-training & re-testing
+|  |- README.md                       -- exact terminal commands
+|  |- stage2a_* stage2b_* stage1_*    -- train/test scripts, logs, results
+|  |- smoke_test.py, make_figures.py
+|  |- analysis_oct2026/               -- analyses re-run on the October models
+|  |- v2_fullwindow/                  -- 512-token re-run and 256-token control
+|  |- span_v2/                        -- span model retrained on the chunks it reads
+|  |- clause_v2/                      -- clause-mode classifier (41 types + none)
+|  |- plain_v2/                       -- larger FLAN-T5 models for the plain-English line
+|  |- verify_report.py                -- checks report numbers against results
+|- analysis/
+|  |- bootstrap_ci.py                 -- cluster bootstrap, presence models
+|  |- span_ci.py                      -- cluster bootstrap, span extraction
+|  |- rare_tail.py                    -- rare-category AND-rule breakdown
+|  |- e2e.py                          -- end-to-end pipeline evaluation
+|  |- summ_pilot.py                   -- two-reference-set summarizer pilot
+|  |- presence_run.py                 -- presence training at any data budget
+|  |- longformer_bench.py             -- sparse-attention cost benchmark
+|  |- diverse_refs.json               -- 150 clause-specific pilot references
+|- demo_clause.txt                    -- 18-clause demonstration contract
+
+clausify-p3-app/  (github.com/afnanmz168/clausify-p3-app)
+|- app.py                             -- Streamlit UI
+|- model_utils.py                     -- inference: all four models, clause mode
+|- features.py                        -- file upload, highlighting, reports
+|- calibrate_clause_mode.py           -- clause-mode calibration (+ .json)
+|- cat_questions.json                 -- 41 category->question strings
+|- sample_contract.txt / test_contract.txt
+|- decision_v2.json                   -- tested rules and per-category thresholds
+|- tests/test_app.py                  -- 46 end-to-end checks
+|- tests/test_output.log              -- output of the last run (46/46)
+\end{verbatim}
+}
