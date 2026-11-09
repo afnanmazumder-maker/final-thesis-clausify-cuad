@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Model weights are published on Hugging Face (af123Af/clausify-models)
+# and downloaded on first run, never committed here.
+*.safetensors
+*.bin
+*.pt
+*.pth
+app/models/
+research/notebooks/outputs/*/ckpt/
+research/retrain/span_v2/runs/*/ckpt/
+research/retrain/clause_v2/runs/bert_ckpt/
+research/retrain/clause_v2/runs/bert_best/
+research/notebooks/outputs/clause_v2/tfidf.pkl
+research/retrain/clause_v2/runs/tfidf.pkl
+research/_prev_run_*/
+
+# Raw dataset, downloaded from Hugging Face on first run
+research/data/CUADv1.json
+
+# Notebook and LaTeX leftovers
+.ipynb_checkpoints/
+*.aux
+*.blg
+research/project_report/*.log
+research/paper/*.log
+
+# OS
+.DS_Store

@@ -1,0 +1,198 @@
+"""
+End-to-end checks for the Clausify app (Streamlit AppTest + direct module tests).
+
+    cd "final project app p3"
+    python3 -m pytest tests/test_app.py -q          # or: python3 tests/test_app.py
+
+Needs the trained models (local or downloadable). Takes a few minutes on CPU.
+"""
+import io, json, os, re, sys, time
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+APP_DIR = os.path.dirname(HERE)
+sys.path.insert(0, APP_DIR)
+os.chdir(APP_DIR)
+
+import model_utils as mu          # noqa: E402
+import features as fx             # noqa: E402
+from streamlit.testing.v1 import AppTest   # noqa: E402
+
+NINE = open(os.path.join(HERE, "nine_clauses.txt")).read()
+DEMO = open(os.path.join(APP_DIR, "test_contract.txt")).read()
+
+
+def run_app(text=None, analyze_as=None, rule=None, summaries=None, upload=None):
+    at = AppTest.from_file("app.py", default_timeout=900).run()
+    if text is not None:
+        at.text_area[0].input(text).run()
+    if analyze_as:
+        at.radio[1].set_value(analyze_as).run()
+    if rule:
+        at.radio[2].set_value(rule).run()
+    if summaries is not None:
+        at.checkbox[0].set_value(summaries).run()
+    at.button[0].click().run()
+    return at
+
+
+def page(at):
+    md = " ".join(m.value for m in at.markdown)
+    return {
+        "exceptions": [str(e.value)[:200] for e in at.exception],
+        "errors": [e.value for e in at.error],
+        "warnings": [w.value for w in at.warning],
+        "pills": dict((k, int(v)) for k, v in re.findall(r'(🔴|🟠|🟢|⚪) (\d+)</span>', md)),
+        "cards": md.count('class="clause '),
+        "plain": md.count("In plain English"),
+        "links": len(re.findall(r'href="#(clause-\d+)"', md)),
+        "anchors": len(re.findall(r'<mark id="(clause-\d+)"', md)),
+        "link_targets_ok": set(re.findall(r'href="#(clause-\d+)"', md)) <= set(re.findall(r'<mark id="(clause-\d+)"', md)),
+        "raw_dollar": bool(re.search(r'\$\d', md)),            # unescaped $ (would be maths)
+        "downloads": [b.label for b in at.get("download_button")],
+        "md": md,
+    }
+
+
+results = []
+
+
+def check(name, cond, detail=""):
+    results.append((name, bool(cond), detail))
+    print(f"[{'PASS' if cond else 'FAIL'}] {name}  {detail}")
+
+
+# 1. clause mode, auto-detected -------------------------------------------------------
+t = time.time(); p = page(run_app(NINE))
+check("clause mode: no exceptions", not p["exceptions"], p["exceptions"])
+check("clause mode: 9 cards, 3/3/3", p["cards"] == 9 and p["pills"] == {"🔴": 3, "🟠": 3, "🟢": 3}, f'{p["pills"]} {time.time()-t:.0f}s')
+check("clause mode: plain-English line per card", p["plain"] == 9, p["plain"])
+check("clause mode: every card links to a highlight", p["links"] == 9 and p["link_targets_ok"], (p["links"], p["anchors"]))
+check("clause mode: $ escaped", not p["raw_dollar"])
+check("clause mode: PDF + CSV downloads", len(p["downloads"]) == 2, p["downloads"])
+
+# 1b. a contract of 18 numbered clauses + title, preamble and signature line -> 18 cards --
+DEMO18 = open(os.path.expanduser("~/Desktop/final project p3/demo_clause.txt")).read()
+at = run_app(DEMO18, analyze_as="🧩 Separate clauses"); p = page(at)
+titles = re.findall(r'<span class="name">([^<]+)</span>', p["md"])
+check("18 numbered clauses -> exactly 18 cards", p["cards"] == 18, f'{p["cards"]} cards, {p["pills"]}')
+check("cards use the contract's own numbers", "Clause 1 · License Grant" in titles and "Clause 18 · Expiration Date" in titles, titles[:2])
+check("title / preamble / signature listed as skipped", any("3 paragraphs not analyzed" in e.label for e in at.expander), [e.label for e in at.expander])
+p = page(run_app(DEMO18))
+check("auto mode on the same text -> 18 clause cards", p["cards"] == 18, p["cards"])
+
+# 2. whole contract, default (recall-first DistilBERT, version 2) and the ensembles ----
+assert mu.v2_available(), "version-2 model files not found (presence_v2/, baseline_v2)"
+assert mu.default_rule() == "RECALL"
+p = page(run_app(DEMO, analyze_as="📄 Whole contract"))
+check("whole contract: no exceptions", not p["exceptions"], p["exceptions"])
+check("whole contract: 27 types, 5 High", sum(p["pills"].values()) == 27 and p["pills"].get("🔴") == 5, p["pills"])
+check("whole contract: links resolve to highlights", p["link_targets_ok"], (p["links"], p["anchors"]))
+check("whole contract: $ escaped", not p["raw_dollar"])
+check("whole contract: says which rule decided", "Recall-first DistilBERT" in p["md"], "")
+cards = re.findall(r'<div class="clause \w+( possible)?">.*?About (\d+)% chance', p["md"])
+check("whole contract: cards under 50% chance marked Possible — check, the rest not",
+      cards and all((pct <= 50) if flag else (pct >= 50) for flag, pct in ((bool(f), int(x)) for f, x in cards))
+      and p["md"].count("POSSIBLE — CHECK") == sum(1 for f, _ in cards if f),
+      f'{sum(1 for f, _ in cards if f)} of {len(cards)} possible')
+p = page(run_app(DEMO, analyze_as="📄 Whole contract", rule="BALANCED", summaries=False))
+check("Balanced ensemble: runs", not p["exceptions"], p["exceptions"])
+check("Balanced ensemble: fewer detections than recall-first", 0 < sum(p["pills"].values()) < 27, p["pills"])
+check("summaries off: no plain-English lines", p["plain"] == 0, p["plain"])
+p = page(run_app(DEMO, analyze_as="📄 Whole contract", rule="RECALL_ENS", summaries=False))
+check("Recall-first ensemble: runs", not p["exceptions"] and sum(p["pills"].values()) > 0, p["pills"])
+
+# 2b. the deployed thresholds are exactly the ones tested in the report ---------------
+dec = mu.DECISION_V2["objectives"]
+check("decision file: recall-first is micro-F2, balanced is micro-F1 AND",
+      mu.V2_RULES["RECALL"] == ("f2", "transformer") and dec["f1"]["rule"] == "AND" and dec["f2"]["rule"] == "AVG",
+      (mu.V2_RULES, dec["f1"]["rule"], dec["f2"]["rule"]))
+check("calibration map: monotone and within 0-1",
+      0.0 <= mu.calibrated(0.2) <= mu.calibrated(0.9) <= mu.calibrated(0.999) <= 1.0,
+      (mu.calibrated(0.2), mu.calibrated(0.9), mu.calibrated(0.999)))
+check("clause mode uses the clause classifier (41 types + none)",
+      mu.clause_v2_available() and mu.clause_eval()["acc"] > 0.7 and mu.CLAUSE_V2["labels"][-1] == "none"
+      and set(mu.CLAUSE_V2["labels"][:-1]) == set(mu.CATEGORIES), mu.clause_eval())
+check("decision file: a threshold for every category",
+      all(set(dec[o][k]) == set(mu.CATEGORIES) for o in dec for k in ("t_tfidf", "t_transformer", "t_avg")))
+
+# 3. auto mode on a full contract picks whole-contract mode --------------------------
+p = page(run_app(DEMO))
+check("auto on full contract -> whole-contract mode", "whole contract" in p["md"], "")
+
+# 3b. stale results are flagged when the input changes after an analysis ---------------
+at = run_app(NINE); at.text_area[0].input("A different contract text entirely, not analyzed yet.").run()
+check("stale results flagged after editing input", any("previously analyzed" in w.value for w in at.warning),
+      [w.value[:60] for w in at.warning])
+at.text_area[0].input(NINE).run()
+check("no stale warning when input matches", not any("previously analyzed" in w.value for w in at.warning))
+
+# 4. edge inputs -----------------------------------------------------------------------
+p = page(run_app("Short text."))
+check("tiny input: no crash", not p["exceptions"], p["exceptions"])
+p = page(run_app("Short text one here.", analyze_as="🧩 Separate clauses"))
+check("tiny input in clause mode: warns and falls back", not p["exceptions"] and p["warnings"], p["warnings"])
+weird = ("1. GOVERNING LAW. <script>alert(1)</script> This Agreement is governed by the laws of "
+         "New York & Delaware; fees of $5,000 apply. ✓ 中文 *bold* _x_ `code`\n\n"
+         "2. INSURANCE. Supplier shall carry insurance of $1,000,000 per occurrence at all times.")
+p = page(run_app(weird))
+check("special chars: no crash", not p["exceptions"], p["exceptions"])
+check("special chars: HTML escaped", "<script>" not in p["md"] and "&lt;script&gt;" in p["md"])
+check("special chars: $ escaped", not p["raw_dollar"])
+no_blank = "\n".join(l for l in NINE.split("\n") if l.strip())          # numbered lines, no blank lines
+p = page(run_app(no_blank, analyze_as="🧩 Separate clauses"))
+check("numbered lines without blank lines: 9 clauses", p["cards"] == 9, p["cards"])
+
+# 5. long contract (CUAD test contract > 30 windows) -----------------------------------
+cuad = os.path.expanduser("~/p3_notebook/CUADv1.json")
+if os.path.exists(cuad):
+    js = json.load(open(cuad))["data"]
+    longest = max(js, key=lambda c: len(c["paragraphs"][0]["context"]))["paragraphs"][0]["context"]
+    t = time.time(); p = page(run_app(longest, analyze_as="📄 Whole contract", summaries=False))
+    check("longest CUAD contract: no crash", not p["exceptions"], f"{len(longest):,} chars, {time.time()-t:.0f}s, {p['pills']}")
+
+# 6. file uploads (direct extraction) --------------------------------------------------
+import fitz, docx
+d = docx.Document(); [d.add_paragraph(x) for x in DEMO.split("\n\n")]; b = io.BytesIO(); d.save(b)
+txt, note = fx.extract_text("c.docx", b.getvalue())
+check("docx extraction", len(txt) > 4000 and not note, len(txt))
+doc = fitz.open(); pg = doc.new_page(); pg.insert_textbox(fitz.Rect(40, 40, 560, 800), DEMO[:3000], fontsize=7)
+txt, note = fx.extract_text("c.pdf", doc.tobytes())
+check("pdf extraction", len(txt) > 2000 and not note, len(txt))
+blank = fitz.open(); blank.new_page()
+txt, note = fx.extract_text("scan.pdf", blank.tobytes())
+check("image-only pdf: warns", bool(note), note[:60])
+try:
+    fx.extract_text("broken.pdf", b"not a pdf"); ok = False
+except Exception:
+    ok = True
+check("corrupt pdf: raises (app shows error)", ok)
+txt, _ = fx.extract_text("win.txt", "Café clause — £100".encode("cp1252"))
+check("Windows (cp1252) txt keeps accents", txt == "Café clause — £100", repr(txt))
+txt, _ = fx.extract_text("bom.txt", "\ufeffGoverning law clause".encode("utf-8"))
+check("UTF-8 BOM stripped", txt == "Governing law clause", repr(txt))
+
+# 7. report generation edge cases -------------------------------------------------------
+pdf = fx.results_pdf([], mu.missing_protections([]), {"source": "x", "mode": "y"})
+check("PDF report with no clauses", pdf[:4] == b"%PDF", len(pdf))
+row = {"#": 1, "category": "Governing Law", "risk": "Low", "risk_reason": "r", "quoted_text": "<b>$5 & ✓ 中文</b>",
+       "plain_english": "p", "summary_mismatch": "Insurance", "score_text": "s"}
+pdf = fx.results_pdf([row], [], {"source": "x", "mode": "y"})
+check("PDF report with special chars", pdf[:4] == b"%PDF", len(pdf))
+csv_bytes = fx.results_csv([row]); csv_text = csv_bytes.decode("utf-8-sig")
+check("CSV has a status column", csv_text.splitlines()[0].split(",")[3] == "status", csv_text.splitlines()[0][:60])
+check("CSV has Excel BOM and keeps unicode", csv_bytes[:3] == b"\xef\xbb\xbf" and "中文" in csv_text and csv_text.count("\n") == 2, csv_text[:80])
+
+# 8. checklist logic ---------------------------------------------------------------------
+m = {x["category"] for x in mu.missing_protections(["Renewal Term"])}
+check("checklist: renewal without notice period is flagged", "Notice Period To Terminate Renewal" in m)
+m = {x["category"] for x in mu.missing_protections([])}
+check("checklist: notice period not flagged without renewal", "Notice Period To Terminate Renewal" not in m)
+
+failed = [r for r in results if not r[1]]
+print(f"\n{len(results) - len(failed)}/{len(results)} checks passed")
+if __name__ == "__main__":
+    sys.exit(1 if failed else 0)
+
+
+def test_all():           # pytest entry point
+    assert not failed, failed
