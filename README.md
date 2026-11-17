@@ -8,9 +8,9 @@ Group ID P25301051
 Jerin Aktar, Afnan Mazumder, Shoyeb Hasan Sayem
 Supervisor: Utsha Kumar Roy
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://clausify-p3.streamlit.app)
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://final-thesis-clausify-cuad-aynteebz7qt88bwxeb5lrn.streamlit.app)
 
-**[Try the live app](https://clausify-p3.streamlit.app)** , paste a contract and it returns a risk-prioritized report.
+**[Try the live app](https://final-thesis-clausify-cuad-aynteebz7qt88bwxeb5lrn.streamlit.app)** , paste a contract and it returns a risk-prioritized report.
 
 ---
 
@@ -31,7 +31,7 @@ and presents the result as a risk-prioritized report a non-lawyer can act on.
 
 The application is deployed on Streamlit Community Cloud:
 
-**https://clausify-p3.streamlit.app**
+**https://final-thesis-clausify-cuad-aynteebz7qt88bwxeb5lrn.streamlit.app**
 
 It runs on CPU and loads its weights from Hugging Face on first boot, so a cold start can
 take a few minutes. Open it once before relying on it.
