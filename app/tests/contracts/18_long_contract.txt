@@ -1,0 +1,321 @@
+MASTER SERVICES, LICENSE AND DISTRIBUTION AGREEMENT (LONG FORM)
+
+
+
+This Master Services, License And Distribution Agreement (Long Form) (this "Agreement") is entered into and made effective as of 15 January 2025 (the "Effective Date"), by and between Ravensworth Global Holdings, Inc., with its principal place of business at 500 Harbor Boulevard, Suite 1200 ("Ravensworth"), and Catalina Pacific Enterprises Ltd., with offices at 1200 Commerce Street ("Catalina"). Each a "Party" and together the "Parties".
+
+
+
+RECITALS
+
+WHEREAS, Ravensworth Global Holdings, Inc. owns and controls certain products, technology and intellectual property; and
+
+WHEREAS, Catalina Pacific Enterprises Ltd. desires to obtain, and Ravensworth Global Holdings, Inc. is willing to grant, certain rights on the terms set out below;
+
+NOW, THEREFORE, in consideration of the mutual covenants contained herein, the Parties agree as follows:
+
+
+
+1. GRANT OF LICENSE. Subject to the terms of this Agreement, Ravensworth Global Holdings, Inc. grants to Catalina Pacific Enterprises Ltd. a non-exclusive, non-transferable license to use the Software in object code form solely for Catalina Pacific Enterprises Ltd.'s internal business purposes during the Term.
+
+2. EXCLUSIVITY. During the Term, Catalina Pacific Enterprises Ltd. shall purchase all of its requirements for products of the type covered by this Agreement exclusively from Ravensworth Global Holdings, Inc., and shall not market, distribute, promote or represent any competing product line from any other source without the prior written consent of Ravensworth Global Holdings, Inc..
+
+3. NOTICES. All notices required or permitted under this Agreement shall be in writing and shall be deemed given when delivered personally, sent by confirmed electronic mail, or three (3) business days after being sent by certified mail, return receipt requested, to the addresses set forth in the preamble or such other address as a Party may designate in writing.
+
+4. MINIMUM PURCHASE COMMITMENT. Catalina Pacific Enterprises Ltd. shall purchase a minimum of twelve thousand (12,000) units during each Contract Year. Any shortfall against the minimum shall be invoiced to Catalina Pacific Enterprises Ltd. at the then-current list price and shall be payable within thirty (30) days of invoice, whether or not such units are taken.
+
+5. NON-COMPETITION. For a period of three (3) years following the termination or expiration of this Agreement, Catalina Pacific Enterprises Ltd. shall not, directly or indirectly, whether as owner, partner, employee, consultant or otherwise, engage in, invest in, or render services to any business that competes with the products or services of Ravensworth Global Holdings, Inc. within the Territory.
+
+6. ENTIRE AGREEMENT. This Agreement, together with all Schedules and Exhibits attached hereto, constitutes the entire agreement between the Parties with respect to its subject matter and supersedes all prior and contemporaneous agreements, proposals and representations, whether written or oral. No amendment shall be effective unless in writing and signed by authorized representatives of both Parties.
+
+7. ASSIGNMENT OF INTELLECTUAL PROPERTY. Catalina Pacific Enterprises Ltd. hereby irrevocably assigns and transfers to Ravensworth Global Holdings, Inc. all right, title and interest in and to any inventions, improvements, derivative works, modifications, documentation and feedback conceived or developed in connection with this Agreement, together with all patent, copyright, trade secret and moral rights therein, and agrees to execute any further documents reasonably required to perfect such assignment.
+
+8. AUDIT. Ravensworth Global Holdings, Inc. may, upon thirty (30) days' prior written notice and not more than twice in any calendar year, inspect and audit the books, records and facilities of Catalina Pacific Enterprises Ltd. relating to its performance under this Agreement. If an audit reveals an underpayment exceeding five percent (5%), Catalina Pacific Enterprises Ltd. shall bear the cost of the audit.
+
+9. COMPLIANCE WITH LAW. Each Party shall comply with all applicable federal, state and local laws, regulations and ordinances in the performance of its obligations hereunder, including without limitation those relating to anti-corruption, export control, data protection and employment.
+
+10. TERM AND RENEWAL. The initial term of this Agreement is three (3) years from the Effective Date and shall automatically renew for successive one (1) year renewal terms unless either Party gives written notice of non-renewal in accordance with Section 12.
+
+11. INSURANCE. Catalina Pacific Enterprises Ltd. shall maintain, at its own expense and throughout the Term, commercial general liability insurance of not less than two hundred fifty thousand dollars ($250,000) per occurrence, together with professional liability and workers' compensation coverage as required by law, and shall name Ravensworth Global Holdings, Inc. as an additional insured.
+
+12. CONFIDENTIALITY. Each Party shall hold in confidence all Confidential Information of the other Party, shall use such information solely for the purposes of this Agreement, and shall not disclose it to any third party except to those of its employees and advisors who have a need to know and who are bound by obligations of confidentiality no less protective than those set out herein. These obligations shall survive termination for a period of five (5) years.
+
+13. LIMITATION OF LIABILITY. Except as expressly provided otherwise, each Party's aggregate liability arising out of or related to this Agreement shall not exceed the total fees paid or payable under this Agreement in the twelve (12) months immediately preceding the event giving rise to the claim.
+
+14. GOVERNING LAW. This Agreement shall be governed by and construed in accordance with the laws of the State of Delaware, without regard to its conflict of laws principles, and the Parties submit to the exclusive jurisdiction of the state and federal courts located therein.
+
+15. PAYMENT TERMS. All invoices are payable in United States dollars within thirty (30) days of the invoice date. Amounts not paid when due shall bear interest at the lesser of one and one-half percent (1.5%) per month or the maximum rate permitted by applicable law. All fees are exclusive of taxes, which shall be the responsibility of the paying Party.
+
+16. EXPIRATION. Unless earlier terminated in accordance with its terms, this Agreement shall expire on 31 December 2027.
+
+17. DISPUTE RESOLUTION. The Parties shall attempt in good faith to resolve any dispute arising out of this Agreement through negotiation between senior executives. Any dispute not resolved within thirty (30) days shall be submitted to binding arbitration administered under the Commercial Arbitration Rules then in effect, before a single arbitrator.
+
+18. SEVERABILITY. If any provision of this Agreement is held to be invalid, illegal or unenforceable, that provision shall be modified to the minimum extent necessary to make it enforceable, and the remaining provisions shall continue in full force and effect.
+
+19. INDEPENDENT CONTRACTORS. The relationship of the Parties is that of independent contractors. Nothing in this Agreement shall be construed to create a partnership, joint venture, agency or employment relationship, and neither Party has authority to bind the other.
+
+20. FORCE MAJEURE. Neither Party shall be liable for any failure or delay in performance due to causes beyond its reasonable control, including acts of God, war, terrorism, civil unrest, epidemic, governmental action, labor disputes, or failure of telecommunications or power infrastructure, provided that the affected Party gives prompt notice and uses commercially reasonable efforts to resume performance.
+
+21. SURVIVAL. The provisions of this Agreement which by their nature should survive termination, including those relating to confidentiality, indemnification, limitation of liability, intellectual property and governing law, shall so survive.
+
+
+
+IN WITNESS WHEREOF, the Parties have caused this Agreement to be executed by their duly authorized representatives as of the Effective Date.
+
+SCHEDULE A - OPERATIONAL REQUIREMENTS
+
+A.1. ENTIRE AGREEMENT. This Agreement, together with all Schedules and Exhibits attached hereto, constitutes the entire agreement between the Parties with respect to its subject matter and supersedes all prior and contemporaneous agreements, proposals and representations, whether written or oral. No amendment shall be effective unless in writing and signed by authorized representatives of both Parties.
+
+A.2. COMPLIANCE WITH LAW. Each Party shall comply with all applicable federal, state and local laws, regulations and ordinances in the performance of its obligations hereunder, including without limitation those relating to anti-corruption, export control, data protection and employment.
+
+A.3. CONFIDENTIALITY. Each Party shall hold in confidence all Confidential Information of the other Party, shall use such information solely for the purposes of this Agreement, and shall not disclose it to any third party except to those of its employees and advisors who have a need to know and who are bound by obligations of confidentiality no less protective than those set out herein. These obligations shall survive termination for a period of five (5) years.
+
+A.4. PAYMENT TERMS. All invoices are payable in United States dollars within thirty (30) days of the invoice date. Amounts not paid when due shall bear interest at the lesser of one and one-half percent (1.5%) per month or the maximum rate permitted by applicable law. All fees are exclusive of taxes, which shall be the responsibility of the paying Party.
+
+A.5. DISPUTE RESOLUTION. The Parties shall attempt in good faith to resolve any dispute arising out of this Agreement through negotiation between senior executives. Any dispute not resolved within thirty (30) days shall be submitted to binding arbitration administered under the Commercial Arbitration Rules then in effect, before a single arbitrator.
+
+A.6. SEVERABILITY. If any provision of this Agreement is held to be invalid, illegal or unenforceable, that provision shall be modified to the minimum extent necessary to make it enforceable, and the remaining provisions shall continue in full force and effect.
+
+A.7. INDEPENDENT CONTRACTORS. The relationship of the Parties is that of independent contractors. Nothing in this Agreement shall be construed to create a partnership, joint venture, agency or employment relationship, and neither Party has authority to bind the other.
+
+A.8. FORCE MAJEURE. Neither Party shall be liable for any failure or delay in performance due to causes beyond its reasonable control, including acts of God, war, terrorism, civil unrest, epidemic, governmental action, labor disputes, or failure of telecommunications or power infrastructure, provided that the affected Party gives prompt notice and uses commercially reasonable efforts to resume performance.
+
+SCHEDULE B - OPERATIONAL REQUIREMENTS
+
+B.1. COMPLIANCE WITH LAW. Each Party shall comply with all applicable federal, state and local laws, regulations and ordinances in the performance of its obligations hereunder, including without limitation those relating to anti-corruption, export control, data protection and employment.
+
+B.2. CONFIDENTIALITY. Each Party shall hold in confidence all Confidential Information of the other Party, shall use such information solely for the purposes of this Agreement, and shall not disclose it to any third party except to those of its employees and advisors who have a need to know and who are bound by obligations of confidentiality no less protective than those set out herein. These obligations shall survive termination for a period of five (5) years.
+
+B.3. PAYMENT TERMS. All invoices are payable in United States dollars within thirty (30) days of the invoice date. Amounts not paid when due shall bear interest at the lesser of one and one-half percent (1.5%) per month or the maximum rate permitted by applicable law. All fees are exclusive of taxes, which shall be the responsibility of the paying Party.
+
+B.4. DISPUTE RESOLUTION. The Parties shall attempt in good faith to resolve any dispute arising out of this Agreement through negotiation between senior executives. Any dispute not resolved within thirty (30) days shall be submitted to binding arbitration administered under the Commercial Arbitration Rules then in effect, before a single arbitrator.
+
+B.5. SEVERABILITY. If any provision of this Agreement is held to be invalid, illegal or unenforceable, that provision shall be modified to the minimum extent necessary to make it enforceable, and the remaining provisions shall continue in full force and effect.
+
+B.6. INDEPENDENT CONTRACTORS. The relationship of the Parties is that of independent contractors. Nothing in this Agreement shall be construed to create a partnership, joint venture, agency or employment relationship, and neither Party has authority to bind the other.
+
+B.7. FORCE MAJEURE. Neither Party shall be liable for any failure or delay in performance due to causes beyond its reasonable control, including acts of God, war, terrorism, civil unrest, epidemic, governmental action, labor disputes, or failure of telecommunications or power infrastructure, provided that the affected Party gives prompt notice and uses commercially reasonable efforts to resume performance.
+
+B.8. SURVIVAL. The provisions of this Agreement which by their nature should survive termination, including those relating to confidentiality, indemnification, limitation of liability, intellectual property and governing law, shall so survive.
+
+SCHEDULE C - OPERATIONAL REQUIREMENTS
+
+C.1. CONFIDENTIALITY. Each Party shall hold in confidence all Confidential Information of the other Party, shall use such information solely for the purposes of this Agreement, and shall not disclose it to any third party except to those of its employees and advisors who have a need to know and who are bound by obligations of confidentiality no less protective than those set out herein. These obligations shall survive termination for a period of five (5) years.
+
+C.2. PAYMENT TERMS. All invoices are payable in United States dollars within thirty (30) days of the invoice date. Amounts not paid when due shall bear interest at the lesser of one and one-half percent (1.5%) per month or the maximum rate permitted by applicable law. All fees are exclusive of taxes, which shall be the responsibility of the paying Party.
+
+C.3. DISPUTE RESOLUTION. The Parties shall attempt in good faith to resolve any dispute arising out of this Agreement through negotiation between senior executives. Any dispute not resolved within thirty (30) days shall be submitted to binding arbitration administered under the Commercial Arbitration Rules then in effect, before a single arbitrator.
+
+C.4. SEVERABILITY. If any provision of this Agreement is held to be invalid, illegal or unenforceable, that provision shall be modified to the minimum extent necessary to make it enforceable, and the remaining provisions shall continue in full force and effect.
+
+C.5. INDEPENDENT CONTRACTORS. The relationship of the Parties is that of independent contractors. Nothing in this Agreement shall be construed to create a partnership, joint venture, agency or employment relationship, and neither Party has authority to bind the other.
+
+C.6. FORCE MAJEURE. Neither Party shall be liable for any failure or delay in performance due to causes beyond its reasonable control, including acts of God, war, terrorism, civil unrest, epidemic, governmental action, labor disputes, or failure of telecommunications or power infrastructure, provided that the affected Party gives prompt notice and uses commercially reasonable efforts to resume performance.
+
+C.7. SURVIVAL. The provisions of this Agreement which by their nature should survive termination, including those relating to confidentiality, indemnification, limitation of liability, intellectual property and governing law, shall so survive.
+
+C.8. NOTICES. All notices required or permitted under this Agreement shall be in writing and shall be deemed given when delivered personally, sent by confirmed electronic mail, or three (3) business days after being sent by certified mail, return receipt requested, to the addresses set forth in the preamble or such other address as a Party may designate in writing.
+
+SCHEDULE D - OPERATIONAL REQUIREMENTS
+
+D.1. PAYMENT TERMS. All invoices are payable in United States dollars within thirty (30) days of the invoice date. Amounts not paid when due shall bear interest at the lesser of one and one-half percent (1.5%) per month or the maximum rate permitted by applicable law. All fees are exclusive of taxes, which shall be the responsibility of the paying Party.
+
+D.2. DISPUTE RESOLUTION. The Parties shall attempt in good faith to resolve any dispute arising out of this Agreement through negotiation between senior executives. Any dispute not resolved within thirty (30) days shall be submitted to binding arbitration administered under the Commercial Arbitration Rules then in effect, before a single arbitrator.
+
+D.3. SEVERABILITY. If any provision of this Agreement is held to be invalid, illegal or unenforceable, that provision shall be modified to the minimum extent necessary to make it enforceable, and the remaining provisions shall continue in full force and effect.
+
+D.4. INDEPENDENT CONTRACTORS. The relationship of the Parties is that of independent contractors. Nothing in this Agreement shall be construed to create a partnership, joint venture, agency or employment relationship, and neither Party has authority to bind the other.
+
+D.5. FORCE MAJEURE. Neither Party shall be liable for any failure or delay in performance due to causes beyond its reasonable control, including acts of God, war, terrorism, civil unrest, epidemic, governmental action, labor disputes, or failure of telecommunications or power infrastructure, provided that the affected Party gives prompt notice and uses commercially reasonable efforts to resume performance.
+
+D.6. SURVIVAL. The provisions of this Agreement which by their nature should survive termination, including those relating to confidentiality, indemnification, limitation of liability, intellectual property and governing law, shall so survive.
+
+D.7. NOTICES. All notices required or permitted under this Agreement shall be in writing and shall be deemed given when delivered personally, sent by confirmed electronic mail, or three (3) business days after being sent by certified mail, return receipt requested, to the addresses set forth in the preamble or such other address as a Party may designate in writing.
+
+D.8. ENTIRE AGREEMENT. This Agreement, together with all Schedules and Exhibits attached hereto, constitutes the entire agreement between the Parties with respect to its subject matter and supersedes all prior and contemporaneous agreements, proposals and representations, whether written or oral. No amendment shall be effective unless in writing and signed by authorized representatives of both Parties.
+
+SCHEDULE E - OPERATIONAL REQUIREMENTS
+
+E.1. DISPUTE RESOLUTION. The Parties shall attempt in good faith to resolve any dispute arising out of this Agreement through negotiation between senior executives. Any dispute not resolved within thirty (30) days shall be submitted to binding arbitration administered under the Commercial Arbitration Rules then in effect, before a single arbitrator.
+
+E.2. SEVERABILITY. If any provision of this Agreement is held to be invalid, illegal or unenforceable, that provision shall be modified to the minimum extent necessary to make it enforceable, and the remaining provisions shall continue in full force and effect.
+
+E.3. INDEPENDENT CONTRACTORS. The relationship of the Parties is that of independent contractors. Nothing in this Agreement shall be construed to create a partnership, joint venture, agency or employment relationship, and neither Party has authority to bind the other.
+
+E.4. FORCE MAJEURE. Neither Party shall be liable for any failure or delay in performance due to causes beyond its reasonable control, including acts of God, war, terrorism, civil unrest, epidemic, governmental action, labor disputes, or failure of telecommunications or power infrastructure, provided that the affected Party gives prompt notice and uses commercially reasonable efforts to resume performance.
+
+E.5. SURVIVAL. The provisions of this Agreement which by their nature should survive termination, including those relating to confidentiality, indemnification, limitation of liability, intellectual property and governing law, shall so survive.
+
+E.6. NOTICES. All notices required or permitted under this Agreement shall be in writing and shall be deemed given when delivered personally, sent by confirmed electronic mail, or three (3) business days after being sent by certified mail, return receipt requested, to the addresses set forth in the preamble or such other address as a Party may designate in writing.
+
+E.7. ENTIRE AGREEMENT. This Agreement, together with all Schedules and Exhibits attached hereto, constitutes the entire agreement between the Parties with respect to its subject matter and supersedes all prior and contemporaneous agreements, proposals and representations, whether written or oral. No amendment shall be effective unless in writing and signed by authorized representatives of both Parties.
+
+E.8. COMPLIANCE WITH LAW. Each Party shall comply with all applicable federal, state and local laws, regulations and ordinances in the performance of its obligations hereunder, including without limitation those relating to anti-corruption, export control, data protection and employment.
+
+SCHEDULE F - OPERATIONAL REQUIREMENTS
+
+F.1. SEVERABILITY. If any provision of this Agreement is held to be invalid, illegal or unenforceable, that provision shall be modified to the minimum extent necessary to make it enforceable, and the remaining provisions shall continue in full force and effect.
+
+F.2. INDEPENDENT CONTRACTORS. The relationship of the Parties is that of independent contractors. Nothing in this Agreement shall be construed to create a partnership, joint venture, agency or employment relationship, and neither Party has authority to bind the other.
+
+F.3. FORCE MAJEURE. Neither Party shall be liable for any failure or delay in performance due to causes beyond its reasonable control, including acts of God, war, terrorism, civil unrest, epidemic, governmental action, labor disputes, or failure of telecommunications or power infrastructure, provided that the affected Party gives prompt notice and uses commercially reasonable efforts to resume performance.
+
+F.4. SURVIVAL. The provisions of this Agreement which by their nature should survive termination, including those relating to confidentiality, indemnification, limitation of liability, intellectual property and governing law, shall so survive.
+
+F.5. NOTICES. All notices required or permitted under this Agreement shall be in writing and shall be deemed given when delivered personally, sent by confirmed electronic mail, or three (3) business days after being sent by certified mail, return receipt requested, to the addresses set forth in the preamble or such other address as a Party may designate in writing.
+
+F.6. ENTIRE AGREEMENT. This Agreement, together with all Schedules and Exhibits attached hereto, constitutes the entire agreement between the Parties with respect to its subject matter and supersedes all prior and contemporaneous agreements, proposals and representations, whether written or oral. No amendment shall be effective unless in writing and signed by authorized representatives of both Parties.
+
+F.7. COMPLIANCE WITH LAW. Each Party shall comply with all applicable federal, state and local laws, regulations and ordinances in the performance of its obligations hereunder, including without limitation those relating to anti-corruption, export control, data protection and employment.
+
+F.8. CONFIDENTIALITY. Each Party shall hold in confidence all Confidential Information of the other Party, shall use such information solely for the purposes of this Agreement, and shall not disclose it to any third party except to those of its employees and advisors who have a need to know and who are bound by obligations of confidentiality no less protective than those set out herein. These obligations shall survive termination for a period of five (5) years.
+
+SCHEDULE G - OPERATIONAL REQUIREMENTS
+
+G.1. INDEPENDENT CONTRACTORS. The relationship of the Parties is that of independent contractors. Nothing in this Agreement shall be construed to create a partnership, joint venture, agency or employment relationship, and neither Party has authority to bind the other.
+
+G.2. FORCE MAJEURE. Neither Party shall be liable for any failure or delay in performance due to causes beyond its reasonable control, including acts of God, war, terrorism, civil unrest, epidemic, governmental action, labor disputes, or failure of telecommunications or power infrastructure, provided that the affected Party gives prompt notice and uses commercially reasonable efforts to resume performance.
+
+G.3. SURVIVAL. The provisions of this Agreement which by their nature should survive termination, including those relating to confidentiality, indemnification, limitation of liability, intellectual property and governing law, shall so survive.
+
+G.4. NOTICES. All notices required or permitted under this Agreement shall be in writing and shall be deemed given when delivered personally, sent by confirmed electronic mail, or three (3) business days after being sent by certified mail, return receipt requested, to the addresses set forth in the preamble or such other address as a Party may designate in writing.
+
+G.5. ENTIRE AGREEMENT. This Agreement, together with all Schedules and Exhibits attached hereto, constitutes the entire agreement between the Parties with respect to its subject matter and supersedes all prior and contemporaneous agreements, proposals and representations, whether written or oral. No amendment shall be effective unless in writing and signed by authorized representatives of both Parties.
+
+G.6. COMPLIANCE WITH LAW. Each Party shall comply with all applicable federal, state and local laws, regulations and ordinances in the performance of its obligations hereunder, including without limitation those relating to anti-corruption, export control, data protection and employment.
+
+G.7. CONFIDENTIALITY. Each Party shall hold in confidence all Confidential Information of the other Party, shall use such information solely for the purposes of this Agreement, and shall not disclose it to any third party except to those of its employees and advisors who have a need to know and who are bound by obligations of confidentiality no less protective than those set out herein. These obligations shall survive termination for a period of five (5) years.
+
+G.8. PAYMENT TERMS. All invoices are payable in United States dollars within thirty (30) days of the invoice date. Amounts not paid when due shall bear interest at the lesser of one and one-half percent (1.5%) per month or the maximum rate permitted by applicable law. All fees are exclusive of taxes, which shall be the responsibility of the paying Party.
+
+SCHEDULE H - OPERATIONAL REQUIREMENTS
+
+H.1. FORCE MAJEURE. Neither Party shall be liable for any failure or delay in performance due to causes beyond its reasonable control, including acts of God, war, terrorism, civil unrest, epidemic, governmental action, labor disputes, or failure of telecommunications or power infrastructure, provided that the affected Party gives prompt notice and uses commercially reasonable efforts to resume performance.
+
+H.2. SURVIVAL. The provisions of this Agreement which by their nature should survive termination, including those relating to confidentiality, indemnification, limitation of liability, intellectual property and governing law, shall so survive.
+
+H.3. NOTICES. All notices required or permitted under this Agreement shall be in writing and shall be deemed given when delivered personally, sent by confirmed electronic mail, or three (3) business days after being sent by certified mail, return receipt requested, to the addresses set forth in the preamble or such other address as a Party may designate in writing.
+
+H.4. ENTIRE AGREEMENT. This Agreement, together with all Schedules and Exhibits attached hereto, constitutes the entire agreement between the Parties with respect to its subject matter and supersedes all prior and contemporaneous agreements, proposals and representations, whether written or oral. No amendment shall be effective unless in writing and signed by authorized representatives of both Parties.
+
+H.5. COMPLIANCE WITH LAW. Each Party shall comply with all applicable federal, state and local laws, regulations and ordinances in the performance of its obligations hereunder, including without limitation those relating to anti-corruption, export control, data protection and employment.
+
+H.6. CONFIDENTIALITY. Each Party shall hold in confidence all Confidential Information of the other Party, shall use such information solely for the purposes of this Agreement, and shall not disclose it to any third party except to those of its employees and advisors who have a need to know and who are bound by obligations of confidentiality no less protective than those set out herein. These obligations shall survive termination for a period of five (5) years.
+
+H.7. PAYMENT TERMS. All invoices are payable in United States dollars within thirty (30) days of the invoice date. Amounts not paid when due shall bear interest at the lesser of one and one-half percent (1.5%) per month or the maximum rate permitted by applicable law. All fees are exclusive of taxes, which shall be the responsibility of the paying Party.
+
+H.8. DISPUTE RESOLUTION. The Parties shall attempt in good faith to resolve any dispute arising out of this Agreement through negotiation between senior executives. Any dispute not resolved within thirty (30) days shall be submitted to binding arbitration administered under the Commercial Arbitration Rules then in effect, before a single arbitrator.
+
+SCHEDULE I - OPERATIONAL REQUIREMENTS
+
+I.1. SURVIVAL. The provisions of this Agreement which by their nature should survive termination, including those relating to confidentiality, indemnification, limitation of liability, intellectual property and governing law, shall so survive.
+
+I.2. NOTICES. All notices required or permitted under this Agreement shall be in writing and shall be deemed given when delivered personally, sent by confirmed electronic mail, or three (3) business days after being sent by certified mail, return receipt requested, to the addresses set forth in the preamble or such other address as a Party may designate in writing.
+
+I.3. ENTIRE AGREEMENT. This Agreement, together with all Schedules and Exhibits attached hereto, constitutes the entire agreement between the Parties with respect to its subject matter and supersedes all prior and contemporaneous agreements, proposals and representations, whether written or oral. No amendment shall be effective unless in writing and signed by authorized representatives of both Parties.
+
+I.4. COMPLIANCE WITH LAW. Each Party shall comply with all applicable federal, state and local laws, regulations and ordinances in the performance of its obligations hereunder, including without limitation those relating to anti-corruption, export control, data protection and employment.
+
+I.5. CONFIDENTIALITY. Each Party shall hold in confidence all Confidential Information of the other Party, shall use such information solely for the purposes of this Agreement, and shall not disclose it to any third party except to those of its employees and advisors who have a need to know and who are bound by obligations of confidentiality no less protective than those set out herein. These obligations shall survive termination for a period of five (5) years.
+
+I.6. PAYMENT TERMS. All invoices are payable in United States dollars within thirty (30) days of the invoice date. Amounts not paid when due shall bear interest at the lesser of one and one-half percent (1.5%) per month or the maximum rate permitted by applicable law. All fees are exclusive of taxes, which shall be the responsibility of the paying Party.
+
+I.7. DISPUTE RESOLUTION. The Parties shall attempt in good faith to resolve any dispute arising out of this Agreement through negotiation between senior executives. Any dispute not resolved within thirty (30) days shall be submitted to binding arbitration administered under the Commercial Arbitration Rules then in effect, before a single arbitrator.
+
+I.8. SEVERABILITY. If any provision of this Agreement is held to be invalid, illegal or unenforceable, that provision shall be modified to the minimum extent necessary to make it enforceable, and the remaining provisions shall continue in full force and effect.
+
+SCHEDULE J - OPERATIONAL REQUIREMENTS
+
+J.1. NOTICES. All notices required or permitted under this Agreement shall be in writing and shall be deemed given when delivered personally, sent by confirmed electronic mail, or three (3) business days after being sent by certified mail, return receipt requested, to the addresses set forth in the preamble or such other address as a Party may designate in writing.
+
+J.2. ENTIRE AGREEMENT. This Agreement, together with all Schedules and Exhibits attached hereto, constitutes the entire agreement between the Parties with respect to its subject matter and supersedes all prior and contemporaneous agreements, proposals and representations, whether written or oral. No amendment shall be effective unless in writing and signed by authorized representatives of both Parties.
+
+J.3. COMPLIANCE WITH LAW. Each Party shall comply with all applicable federal, state and local laws, regulations and ordinances in the performance of its obligations hereunder, including without limitation those relating to anti-corruption, export control, data protection and employment.
+
+J.4. CONFIDENTIALITY. Each Party shall hold in confidence all Confidential Information of the other Party, shall use such information solely for the purposes of this Agreement, and shall not disclose it to any third party except to those of its employees and advisors who have a need to know and who are bound by obligations of confidentiality no less protective than those set out herein. These obligations shall survive termination for a period of five (5) years.
+
+J.5. PAYMENT TERMS. All invoices are payable in United States dollars within thirty (30) days of the invoice date. Amounts not paid when due shall bear interest at the lesser of one and one-half percent (1.5%) per month or the maximum rate permitted by applicable law. All fees are exclusive of taxes, which shall be the responsibility of the paying Party.
+
+J.6. DISPUTE RESOLUTION. The Parties shall attempt in good faith to resolve any dispute arising out of this Agreement through negotiation between senior executives. Any dispute not resolved within thirty (30) days shall be submitted to binding arbitration administered under the Commercial Arbitration Rules then in effect, before a single arbitrator.
+
+J.7. SEVERABILITY. If any provision of this Agreement is held to be invalid, illegal or unenforceable, that provision shall be modified to the minimum extent necessary to make it enforceable, and the remaining provisions shall continue in full force and effect.
+
+J.8. INDEPENDENT CONTRACTORS. The relationship of the Parties is that of independent contractors. Nothing in this Agreement shall be construed to create a partnership, joint venture, agency or employment relationship, and neither Party has authority to bind the other.
+
+SCHEDULE K - OPERATIONAL REQUIREMENTS
+
+K.1. ENTIRE AGREEMENT. This Agreement, together with all Schedules and Exhibits attached hereto, constitutes the entire agreement between the Parties with respect to its subject matter and supersedes all prior and contemporaneous agreements, proposals and representations, whether written or oral. No amendment shall be effective unless in writing and signed by authorized representatives of both Parties.
+
+K.2. COMPLIANCE WITH LAW. Each Party shall comply with all applicable federal, state and local laws, regulations and ordinances in the performance of its obligations hereunder, including without limitation those relating to anti-corruption, export control, data protection and employment.
+
+K.3. CONFIDENTIALITY. Each Party shall hold in confidence all Confidential Information of the other Party, shall use such information solely for the purposes of this Agreement, and shall not disclose it to any third party except to those of its employees and advisors who have a need to know and who are bound by obligations of confidentiality no less protective than those set out herein. These obligations shall survive termination for a period of five (5) years.
+
+K.4. PAYMENT TERMS. All invoices are payable in United States dollars within thirty (30) days of the invoice date. Amounts not paid when due shall bear interest at the lesser of one and one-half percent (1.5%) per month or the maximum rate permitted by applicable law. All fees are exclusive of taxes, which shall be the responsibility of the paying Party.
+
+K.5. DISPUTE RESOLUTION. The Parties shall attempt in good faith to resolve any dispute arising out of this Agreement through negotiation between senior executives. Any dispute not resolved within thirty (30) days shall be submitted to binding arbitration administered under the Commercial Arbitration Rules then in effect, before a single arbitrator.
+
+K.6. SEVERABILITY. If any provision of this Agreement is held to be invalid, illegal or unenforceable, that provision shall be modified to the minimum extent necessary to make it enforceable, and the remaining provisions shall continue in full force and effect.
+
+K.7. INDEPENDENT CONTRACTORS. The relationship of the Parties is that of independent contractors. Nothing in this Agreement shall be construed to create a partnership, joint venture, agency or employment relationship, and neither Party has authority to bind the other.
+
+K.8. FORCE MAJEURE. Neither Party shall be liable for any failure or delay in performance due to causes beyond its reasonable control, including acts of God, war, terrorism, civil unrest, epidemic, governmental action, labor disputes, or failure of telecommunications or power infrastructure, provided that the affected Party gives prompt notice and uses commercially reasonable efforts to resume performance.
+
+SCHEDULE L - OPERATIONAL REQUIREMENTS
+
+L.1. COMPLIANCE WITH LAW. Each Party shall comply with all applicable federal, state and local laws, regulations and ordinances in the performance of its obligations hereunder, including without limitation those relating to anti-corruption, export control, data protection and employment.
+
+L.2. CONFIDENTIALITY. Each Party shall hold in confidence all Confidential Information of the other Party, shall use such information solely for the purposes of this Agreement, and shall not disclose it to any third party except to those of its employees and advisors who have a need to know and who are bound by obligations of confidentiality no less protective than those set out herein. These obligations shall survive termination for a period of five (5) years.
+
+L.3. PAYMENT TERMS. All invoices are payable in United States dollars within thirty (30) days of the invoice date. Amounts not paid when due shall bear interest at the lesser of one and one-half percent (1.5%) per month or the maximum rate permitted by applicable law. All fees are exclusive of taxes, which shall be the responsibility of the paying Party.
+
+L.4. DISPUTE RESOLUTION. The Parties shall attempt in good faith to resolve any dispute arising out of this Agreement through negotiation between senior executives. Any dispute not resolved within thirty (30) days shall be submitted to binding arbitration administered under the Commercial Arbitration Rules then in effect, before a single arbitrator.
+
+L.5. SEVERABILITY. If any provision of this Agreement is held to be invalid, illegal or unenforceable, that provision shall be modified to the minimum extent necessary to make it enforceable, and the remaining provisions shall continue in full force and effect.
+
+L.6. INDEPENDENT CONTRACTORS. The relationship of the Parties is that of independent contractors. Nothing in this Agreement shall be construed to create a partnership, joint venture, agency or employment relationship, and neither Party has authority to bind the other.
+
+L.7. FORCE MAJEURE. Neither Party shall be liable for any failure or delay in performance due to causes beyond its reasonable control, including acts of God, war, terrorism, civil unrest, epidemic, governmental action, labor disputes, or failure of telecommunications or power infrastructure, provided that the affected Party gives prompt notice and uses commercially reasonable efforts to resume performance.
+
+L.8. SURVIVAL. The provisions of this Agreement which by their nature should survive termination, including those relating to confidentiality, indemnification, limitation of liability, intellectual property and governing law, shall so survive.
+
+SCHEDULE M - OPERATIONAL REQUIREMENTS
+
+M.1. CONFIDENTIALITY. Each Party shall hold in confidence all Confidential Information of the other Party, shall use such information solely for the purposes of this Agreement, and shall not disclose it to any third party except to those of its employees and advisors who have a need to know and who are bound by obligations of confidentiality no less protective than those set out herein. These obligations shall survive termination for a period of five (5) years.
+
+M.2. PAYMENT TERMS. All invoices are payable in United States dollars within thirty (30) days of the invoice date. Amounts not paid when due shall bear interest at the lesser of one and one-half percent (1.5%) per month or the maximum rate permitted by applicable law. All fees are exclusive of taxes, which shall be the responsibility of the paying Party.
+
+M.3. DISPUTE RESOLUTION. The Parties shall attempt in good faith to resolve any dispute arising out of this Agreement through negotiation between senior executives. Any dispute not resolved within thirty (30) days shall be submitted to binding arbitration administered under the Commercial Arbitration Rules then in effect, before a single arbitrator.
+
+M.4. SEVERABILITY. If any provision of this Agreement is held to be invalid, illegal or unenforceable, that provision shall be modified to the minimum extent necessary to make it enforceable, and the remaining provisions shall continue in full force and effect.
+
+M.5. INDEPENDENT CONTRACTORS. The relationship of the Parties is that of independent contractors. Nothing in this Agreement shall be construed to create a partnership, joint venture, agency or employment relationship, and neither Party has authority to bind the other.
+
+M.6. FORCE MAJEURE. Neither Party shall be liable for any failure or delay in performance due to causes beyond its reasonable control, including acts of God, war, terrorism, civil unrest, epidemic, governmental action, labor disputes, or failure of telecommunications or power infrastructure, provided that the affected Party gives prompt notice and uses commercially reasonable efforts to resume performance.
+
+M.7. SURVIVAL. The provisions of this Agreement which by their nature should survive termination, including those relating to confidentiality, indemnification, limitation of liability, intellectual property and governing law, shall so survive.
+
+M.8. NOTICES. All notices required or permitted under this Agreement shall be in writing and shall be deemed given when delivered personally, sent by confirmed electronic mail, or three (3) business days after being sent by certified mail, return receipt requested, to the addresses set forth in the preamble or such other address as a Party may designate in writing.
+
+SCHEDULE N - OPERATIONAL REQUIREMENTS
+
+N.1. PAYMENT TERMS. All invoices are payable in United States dollars within thirty (30) days of the invoice date. Amounts not paid when due shall bear interest at the lesser of one and one-half percent (1.5%) per month or the maximum rate permitted by applicable law. All fees are exclusive of taxes, which shall be the responsibility of the paying Party.
+
+N.2. DISPUTE RESOLUTION. The Parties shall attempt in good faith to resolve any dispute arising out of this Agreement through negotiation between senior executives. Any dispute not resolved within thirty (30) days shall be submitted to binding arbitration administered under the Commercial Arbitration Rules then in effect, before a single arbitrator.
+
+N.3. SEVERABILITY. If any provision of this Agreement is held to be invalid, illegal or unenforceable, that provision shall be modified to the minimum extent necessary to make it enforceable, and the remaining provisions shall continue in full force and effect.
+
+N.4. INDEPENDENT CONTRACTORS. The relationship of the Parties is that of independent contractors. Nothing in this Agreement shall be construed to create a partnership, joint venture, agency or employment relationship, and neither Party has authority to bind the other.
+
+N.5. FORCE MAJEURE. Neither Party shall be liable for any failure or delay in performance due to causes beyond its reasonable control, including acts of God, war, terrorism, civil unrest, epidemic, governmental action, labor disputes, or failure of telecommunications or power infrastructure, provided that the affected Party gives prompt notice and uses commercially reasonable efforts to resume performance.
+
+N.6. SURVIVAL. The provisions of this Agreement which by their nature should survive termination, including those relating to confidentiality, indemnification, limitation of liability, intellectual property and governing law, shall so survive.
+
+N.7. NOTICES. All notices required or permitted under this Agreement shall be in writing and shall be deemed given when delivered personally, sent by confirmed electronic mail, or three (3) business days after being sent by certified mail, return receipt requested, to the addresses set forth in the preamble or such other address as a Party may designate in writing.
+
+N.8. ENTIRE AGREEMENT. This Agreement, together with all Schedules and Exhibits attached hereto, constitutes the entire agreement between the Parties with respect to its subject matter and supersedes all prior and contemporaneous agreements, proposals and representations, whether written or oral. No amendment shall be effective unless in writing and signed by authorized representatives of both Parties.
+
+FINAL PROVISIONS
+
+99. LIQUIDATED DAMAGES. In the event of a breach by Catalina Pacific Enterprises Ltd. of its exclusivity or non-competition obligations, Catalina Pacific Enterprises Ltd. shall pay to Ravensworth Global Holdings, Inc. liquidated damages in the amount of two hundred fifty thousand dollars ($250,000) per occurrence. The Parties agree that this sum is a reasonable estimate of the damages that would be sustained and does not constitute a penalty.
+
+100. MOST FAVORED CUSTOMER. Catalina Pacific Enterprises Ltd. shall extend to Ravensworth Global Holdings, Inc. pricing, terms and conditions no less favorable than the most favorable pricing, terms and conditions Catalina Pacific Enterprises Ltd. extends to any other vendor or customer for comparable goods or services, and shall promptly notify Ravensworth Global Holdings, Inc. if more favorable terms are granted to a third party.

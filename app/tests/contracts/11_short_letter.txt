@@ -1,0 +1,31 @@
+LETTER AGREEMENT REGARDING EVALUATION ACCESS
+
+
+
+This Letter Agreement Regarding Evaluation Access (this "Agreement") is entered into and made effective as of 15 January 2025 (the "Effective Date"), by and between Arcwell Labs, Inc., with its principal place of business at 500 Harbor Boulevard, Suite 1200 ("Arcwell"), and Peregrine Analytics Ltd., with offices at 1200 Commerce Street ("Peregrine"). Each a "Party" and together the "Parties".
+
+
+
+RECITALS
+
+WHEREAS, Arcwell Labs, Inc. owns and controls certain products, technology and intellectual property; and
+
+WHEREAS, Peregrine Analytics Ltd. desires to obtain, and Arcwell Labs, Inc. is willing to grant, certain rights on the terms set out below;
+
+NOW, THEREFORE, in consideration of the mutual covenants contained herein, the Parties agree as follows:
+
+
+
+1. GRANT OF LICENSE. Subject to the terms of this Agreement, Arcwell Labs, Inc. grants to Peregrine Analytics Ltd. a non-exclusive, non-transferable license to use the Software in object code form solely for Peregrine Analytics Ltd.'s internal business purposes during the Term.
+
+2. NON-TRANSFERABILITY. The license granted hereunder is personal to Peregrine Analytics Ltd. and may not be assigned, sublicensed, rented, leased or otherwise transferred to any third party, in whole or in part, by operation of law or otherwise.
+
+3. COMPLIANCE WITH LAW. Each Party shall comply with all applicable federal, state and local laws, regulations and ordinances in the performance of its obligations hereunder, including without limitation those relating to anti-corruption, export control, data protection and employment.
+
+4. GOVERNING LAW. This Agreement shall be governed by and construed in accordance with the laws of the State of New York, without regard to its conflict of laws principles, and the Parties submit to the exclusive jurisdiction of the state and federal courts located therein.
+
+5. EXPIRATION. Unless earlier terminated in accordance with its terms, this Agreement shall expire on 31 December 2027.
+
+
+
+IN WITNESS WHEREOF, the Parties have caused this Agreement to be executed by their duly authorized representatives as of the Effective Date.

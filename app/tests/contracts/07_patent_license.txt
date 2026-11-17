@@ -1,0 +1,49 @@
+PATENT LICENSE AND TECHNOLOGY TRANSFER AGREEMENT
+
+
+
+This Patent License And Technology Transfer Agreement (this "Agreement") is entered into and made effective as of 15 January 2025 (the "Effective Date"), by and between Ridgeline Photonics, Inc., with its principal place of business at 500 Harbor Boulevard, Suite 1200 ("Ridgeline"), and Tessera Manufacturing GmbH, with offices at 1200 Commerce Street ("Tessera"). Each a "Party" and together the "Parties".
+
+
+
+RECITALS
+
+WHEREAS, Ridgeline Photonics, Inc. owns and controls certain products, technology and intellectual property; and
+
+WHEREAS, Tessera Manufacturing GmbH desires to obtain, and Ridgeline Photonics, Inc. is willing to grant, certain rights on the terms set out below;
+
+NOW, THEREFORE, in consideration of the mutual covenants contained herein, the Parties agree as follows:
+
+
+
+1. GRANT OF LICENSE. Subject to the terms of this Agreement, Ridgeline Photonics, Inc. grants to Tessera Manufacturing GmbH a non-exclusive, non-transferable license to use the Software in object code form solely for Tessera Manufacturing GmbH's internal business purposes during the Term.
+
+2. PERPETUAL LICENSE. Tessera Manufacturing GmbH grants to Ridgeline Photonics, Inc. an irrevocable, perpetual, worldwide, royalty-free, fully paid-up license, with the right to sublicense through multiple tiers, to use, reproduce, modify and distribute any Tessera Manufacturing GmbH materials incorporated into or delivered with the Deliverables.
+
+3. SEVERABILITY. If any provision of this Agreement is held to be invalid, illegal or unenforceable, that provision shall be modified to the minimum extent necessary to make it enforceable, and the remaining provisions shall continue in full force and effect.
+
+4. JOINT OWNERSHIP. Any intellectual property jointly conceived by personnel of both Parties in the course of the Project shall be owned jointly by the Parties, each having an undivided one-half interest, and neither Party shall be required to account to the other for exploitation of such jointly owned property.
+
+5. NON-TRANSFERABILITY. The license granted hereunder is personal to Tessera Manufacturing GmbH and may not be assigned, sublicensed, rented, leased or otherwise transferred to any third party, in whole or in part, by operation of law or otherwise.
+
+6. SURVIVAL. The provisions of this Agreement which by their nature should survive termination, including those relating to confidentiality, indemnification, limitation of liability, intellectual property and governing law, shall so survive.
+
+7. REVENUE SHARE. Tessera Manufacturing GmbH shall pay to Ridgeline Photonics, Inc. fifteen percent (15%) of all gross revenue recognized from the sale, sublicense or distribution of the Products, payable quarterly within forty-five (45) days of the end of each calendar quarter, together with a statement showing the calculation.
+
+8. COVENANT NOT TO SUE. Tessera Manufacturing GmbH covenants that it will not assert, and will not authorize any third party to assert on its behalf, any claim, suit or proceeding against Ridgeline Photonics, Inc. or its customers alleging that the Products infringe any patent owned or controlled by Tessera Manufacturing GmbH as of the Effective Date.
+
+9. ENTIRE AGREEMENT. This Agreement, together with all Schedules and Exhibits attached hereto, constitutes the entire agreement between the Parties with respect to its subject matter and supersedes all prior and contemporaneous agreements, proposals and representations, whether written or oral. No amendment shall be effective unless in writing and signed by authorized representatives of both Parties.
+
+10. LICENSOR AFFILIATES. The license granted herein is made by Ridgeline Photonics, Inc. on behalf of itself and each of its Affiliates, and Ridgeline Photonics, Inc. represents that it has authority to bind such Affiliates to the grant.
+
+11. AUDIT. Ridgeline Photonics, Inc. may, upon thirty (30) days' prior written notice and not more than twice in any calendar year, inspect and audit the books, records and facilities of Tessera Manufacturing GmbH relating to its performance under this Agreement. If an audit reveals an underpayment exceeding five percent (5%), Tessera Manufacturing GmbH shall bear the cost of the audit.
+
+12. DISPUTE RESOLUTION. The Parties shall attempt in good faith to resolve any dispute arising out of this Agreement through negotiation between senior executives. Any dispute not resolved within thirty (30) days shall be submitted to binding arbitration administered under the Commercial Arbitration Rules then in effect, before a single arbitrator.
+
+13. GOVERNING LAW. This Agreement shall be governed by and construed in accordance with the laws of the State of Delaware, without regard to its conflict of laws principles, and the Parties submit to the exclusive jurisdiction of the state and federal courts located therein.
+
+14. NOTICES. All notices required or permitted under this Agreement shall be in writing and shall be deemed given when delivered personally, sent by confirmed electronic mail, or three (3) business days after being sent by certified mail, return receipt requested, to the addresses set forth in the preamble or such other address as a Party may designate in writing.
+
+
+
+IN WITNESS WHEREOF, the Parties have caused this Agreement to be executed by their duly authorized representatives as of the Effective Date.
