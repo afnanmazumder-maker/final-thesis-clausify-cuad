@@ -1,5 +1,9 @@
+# Linux CPU wheels. The "+cpu" suffix exists ONLY on the PyTorch CPU index, so
+# pip is forced to take torch from there instead of PyPI's 888 MB CUDA build,
+# which drags in ~3 GB of nvidia-*-cu12 packages and breaks the Streamlit build.
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.8.0
+
+torch==2.8.0+cpu
 transformers==5.12.1
 huggingface_hub>=1.0
 streamlit==1.45.1
