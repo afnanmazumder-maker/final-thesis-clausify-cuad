@@ -1,0 +1,5 @@
+# Only the static landing page is deployed to Vercel.
+# The Streamlit app and the research code are not, and cannot be, serverless.
+app/
+research/
+requirements.txt
